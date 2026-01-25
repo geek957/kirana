@@ -1,0 +1,37 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "kirana-grocery-app",
+          "appId": "1:342620535954:android:d915f003ddc71d49cdba4b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "kirana-grocery-app",
+          "appId": "1:342620535954:ios:74acfecfe4d99759cdba4b",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "kirana-grocery-app",
+          "configurations": {
+            "android": "1:342620535954:android:d915f003ddc71d49cdba4b",
+            "ios": "1:342620535954:ios:74acfecfe4d99759cdba4b",
+            "web": "1:342620535954:web:62f2d307d7d289b9cdba4b"
+          }
+        }
+      }
+    }
+  }
+}

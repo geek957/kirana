@@ -69,20 +69,21 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () async {
-                // Test Firebase connection
+                // Test Firebase connection by reading from products collection
+                // Products collection allows public read access per security rules
                 try {
-                  await FirebaseFirestore.instance
-                      .collection('test')
-                      .doc('connection')
-                      .set({
-                        'timestamp': FieldValue.serverTimestamp(),
-                        'message': 'Firebase connection successful!',
-                      });
+                  final snapshot = await FirebaseFirestore.instance
+                      .collection('products')
+                      .limit(1)
+                      .get();
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Firebase connection successful!'),
+                      SnackBar(
+                        content: Text(
+                          'Firebase connection successful! '
+                          'Found ${snapshot.docs.length} products.',
+                        ),
                         backgroundColor: Colors.green,
                       ),
                     );

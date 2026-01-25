@@ -25,13 +25,13 @@
   - Test Firebase connection with a simple read/write operation
   - _Validates: Requirement 14, Acceptance Criteria 14.1_
 
-- [ ] 1.3 Deploy Firebase Security Rules
+- [x] 1.3 Deploy Firebase Security Rules
   - Implement Firestore security rules from design document
   - Deploy rules to Firebase
   - Test rules with Firebase Emulator
   - _Validates: Requirement 11, Acceptance Criteria 11.3_
 
-- [ ] 1.4 Create project folder structure
+- [x] 1.4 Create project folder structure
   - Create folders: models/, services/, providers/, screens/, widgets/, utils/
   - Set up constants file for app-wide constants
   - Create theme configuration
