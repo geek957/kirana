@@ -208,11 +208,13 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: const CardThemeData(
         color: backgroundColor,
         elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+        ),
+        margin: EdgeInsets.all(8),
       ),
 
       // Chip Theme
@@ -262,17 +264,19 @@ class AppTheme {
       ),
 
       // Dialog Theme
-      dialogTheme: DialogTheme(
+      dialogTheme: const DialogThemeData(
         backgroundColor: backgroundColor,
         elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titleTextStyle: const TextStyle(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+        titleTextStyle: TextStyle(
           fontFamily: 'Roboto',
           fontSize: 20,
           fontWeight: FontWeight.bold,
           color: textPrimaryColor,
         ),
-        contentTextStyle: const TextStyle(
+        contentTextStyle: TextStyle(
           fontFamily: 'Roboto',
           fontSize: 14,
           color: textPrimaryColor,

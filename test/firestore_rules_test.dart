@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 
 /// Test suite for Firebase Security Rules
 ///
@@ -14,11 +13,9 @@ import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 void main() {
   group('Firestore Security Rules Tests', () {
     late FakeFirebaseFirestore firestore;
-    late MockFirebaseAuth auth;
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      auth = MockFirebaseAuth();
     });
 
     group('Product Rules', () {
@@ -44,9 +41,6 @@ void main() {
       test('Only admins can write products', () async {
         // This test demonstrates the expected behavior
         // In production, non-admin writes would be rejected by security rules
-
-        // Simulate admin user
-        final adminUser = MockUser(uid: 'admin123', email: 'admin@test.com');
 
         // Create admin customer document
         await firestore.collection('customers').doc('admin123').set({
