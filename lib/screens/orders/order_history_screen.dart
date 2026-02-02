@@ -254,13 +254,26 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                   color: Colors.grey[600],
                                 ),
                               ),
-                              Text(
-                                '₹${order.totalAmount.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '₹${(order.totalAmount + order.deliveryCharge).toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                  if (order.deliveryCharge > 0)
+                                    Text(
+                                      'incl. ₹${order.deliveryCharge.toStringAsFixed(2)} delivery',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                ],
                               ),
                             ],
                           ),

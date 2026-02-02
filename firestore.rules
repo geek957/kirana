@@ -36,14 +36,30 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true; // Public read for browsing
       
-      // Admins can do anything
-      allow write: if isAdmin();
+      // Admins can do anything with validation
+      allow create, update: if isAdmin() && validateProduct();
+      allow delete: if isAdmin();
       
       // Authenticated users can update ONLY stock quantity (for order placement)
       // This allows customers to place orders which deduct stock
       allow update: if isAuthenticated() && 
                        onlyUpdatingStock() && 
                        stockIsDecreasing();
+    }
+    
+    // Helper function: Validate product data
+    function validateProduct() {
+      let data = request.resource.data;
+      // Discount price must be less than regular price if set
+      let validDiscount = !data.keys().hasAny(['discountPrice']) || 
+                          data.discountPrice == null || 
+                          data.discountPrice < data.price;
+      // Minimum order quantity must be at least 1
+      let validMinQty = data.minimumOrderQuantity >= 1;
+      // Category must exist
+      let validCategory = exists(/databases/$(database)/documents/categories/$(data.categoryId));
+      
+      return validDiscount && validMinQty && validCategory;
     }
     
     // Helper function: Check if only stock-related fields are being updated
@@ -64,12 +80,101 @@ service cloud.firestore {
       allow read, write: if isOwner(customerId);
     }
     
+    // Category rules
+    match /categories/{categoryId} {
+      // Authenticated users can read categories
+      allow read: if isAuthenticated();
+      
+      // Only admins can create and update categories
+      allow create, update: if isAdmin() && validateCategory();
+      
+      // Only admins can delete categories, and only if no products are assigned
+      allow delete: if isAdmin() && resource.data.productCount == 0;
+    }
+    
+    // Helper function: Validate category data
+    function validateCategory() {
+      let data = request.resource.data;
+      // Category name is required and must be non-empty
+      let hasName = data.keys().hasAny(['name']) && data.name.size() > 0;
+      
+      return hasName;
+    }
+    
+    // App configuration rules
+    match /config/app_settings {
+      // All authenticated users can read configuration
+      allow read: if isAuthenticated();
+      
+      // Only admins can update configuration with validation
+      allow write: if isAdmin() && validateConfig();
+    }
+    
+    // Helper function: Validate app configuration
+    function validateConfig() {
+      let data = request.resource.data;
+      
+      // Delivery charge must be non-negative
+      let validDeliveryCharge = data.deliveryCharge >= 0;
+      
+      // Free delivery threshold must be positive
+      let validFreeDeliveryThreshold = data.freeDeliveryThreshold > 0;
+      
+      // Max cart value must be greater than free delivery threshold
+      let validMaxCartValue = data.maxCartValue > data.freeDeliveryThreshold;
+      
+      // Order capacity warning threshold must be positive
+      let validWarningThreshold = data.orderCapacityWarningThreshold > 0;
+      
+      // Order capacity block threshold must be greater than warning threshold
+      let validBlockThreshold = data.orderCapacityBlockThreshold > data.orderCapacityWarningThreshold;
+      
+      return validDeliveryCharge && 
+             validFreeDeliveryThreshold && 
+             validMaxCartValue && 
+             validWarningThreshold && 
+             validBlockThreshold;
+    }
+    
     // Order rules
     match /orders/{orderId} {
       allow read: if isOwner(resource.data.customerId) || isAdmin();
       allow create: if isAuthenticated() && isOwner(request.resource.data.customerId);
-      allow update: if isAdmin(); // Only admins can update order status
+      
+      // Admin can update order status and delivery proof
+      allow update: if isAdmin() && validateAdminOrderUpdate();
+      
+      // Customer can add/update remarks within 24 hours
+      allow update: if isOwner(resource.data.customerId) && validateCustomerRemarksUpdate();
+      
       allow delete: if false; // No deletion allowed
+    }
+    
+    // Helper function: Validate admin order updates
+    function validateAdminOrderUpdate() {
+      let allowedFields = ['status', 'updatedAt', 'deliveryPhotoUrl', 'deliveryLocation', 'deliveryCharge', 'deliveredAt'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields);
+    }
+    
+    // Helper function: Validate customer remarks updates
+    function validateCustomerRemarksUpdate() {
+      let allowedFields = ['customerRemarks', 'remarksTimestamp', 'rating'];
+      let onlyRemarksChanged = request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields);
+      
+      // Check 24-hour edit window
+      let within24Hours = resource.data.remarksTimestamp == null || 
+                          request.time < resource.data.remarksTimestamp + duration.value(24, 'h');
+      
+      // Validate character limit (500 characters) - remarks are now optional
+      let validLength = !request.resource.data.keys().hasAny(['customerRemarks']) ||
+                        request.resource.data.customerRemarks == null ||
+                        request.resource.data.customerRemarks.size() <= 500;
+      
+      // Validate rating (must be 1-5 if present)
+      let validRating = !request.resource.data.keys().hasAny(['rating']) ||
+                        (request.resource.data.rating >= 1 && request.resource.data.rating <= 5);
+      
+      return onlyRemarksChanged && within24Hours && validLength && validRating;
     }
     
     // Verification codes (server-side only via Cloud Functions)
@@ -86,7 +191,8 @@ service cloud.firestore {
     // Notification rules
     match /notifications/{notificationId} {
       allow read: if isOwner(resource.data.customerId) || isAdmin();
-      allow create: if isAdmin(); // Only admins can create notifications
+      // Allow admins and authenticated service accounts (Cloud Functions) to create notifications
+      allow create: if isAdmin() || isAuthenticated();
       allow update: if isOwner(resource.data.customerId); // Customers can mark as read
       allow delete: if isOwner(resource.data.customerId);
     }

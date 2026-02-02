@@ -23,13 +23,18 @@ Welcome to the Kirana documentation hub. This directory contains comprehensive g
   - Order management and fulfillment
   - Analytics and monitoring
   - Security best practices
+- **[Category Management Guide](ADMIN_CATEGORY_MANAGEMENT.md)** - Complete guide for managing product categories
+- **[App Configuration Guide](ADMIN_APP_CONFIGURATION.md)** - Managing delivery charges, cart limits, and capacity thresholds
+- **[Delivery Proof Guide](ADMIN_DELIVERY_PROOF.md)** - Capturing and managing delivery photos and locations
 
 ### For Developers & DevOps
 
 #### Setup & Configuration
 - **[Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md)** - Initial Firebase project configuration
+- **[Firebase Setup Enhancements](FIREBASE_SETUP_ENHANCEMENTS.md)** - Configuration for enhanced features (v2.0)
 - **[Firebase Verification](FIREBASE_VERIFICATION.md)** - Verify Firebase integration
 - **[Initial Admin Setup](INITIAL_ADMIN_SETUP.md)** - Create the first admin account
+- **[Default Data Initialization](DEFAULT_DATA_INITIALIZATION.md)** - Initialize categories and configuration
 
 #### Deployment
 - **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Complete deployment instructions
@@ -40,6 +45,7 @@ Welcome to the Kirana documentation hub. This directory contains comprehensive g
   - Backup configuration
   - App store deployment
 - **[Deployment Checklist](DEPLOYMENT_CHECKLIST.md)** - Step-by-step deployment checklist
+- **[Deployment Checklist - Enhancements](DEPLOYMENT_CHECKLIST_ENHANCEMENTS.md)** - Checklist for v2.0 enhanced features
 
 #### Technical Documentation
 - **[Firestore Indexes](FIRESTORE_INDEXES.md)** - Database index configuration
@@ -120,6 +126,15 @@ docs/
 **...manage inventory and orders**
 → Read [Admin User Guide](ADMIN_USER_GUIDE.md)
 
+**...manage product categories**
+→ Read [Category Management Guide](ADMIN_CATEGORY_MANAGEMENT.md)
+
+**...configure app settings**
+→ Read [App Configuration Guide](ADMIN_APP_CONFIGURATION.md)
+
+**...capture delivery proof**
+→ Read [Delivery Proof Guide](ADMIN_DELIVERY_PROOF.md)
+
 **...deploy the app to production**
 → Follow [Deployment Guide](DEPLOYMENT_GUIDE.md) and [Deployment Checklist](DEPLOYMENT_CHECKLIST.md)
 
@@ -130,7 +145,10 @@ docs/
 → Check [Troubleshooting Guide](TROUBLESHOOTING.md)
 
 **...set up Firebase**
-→ Follow [Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md)
+→ Follow [Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md) and [Firebase Setup Enhancements](FIREBASE_SETUP_ENHANCEMENTS.md)
+
+**...initialize default data**
+→ Follow [Default Data Initialization](DEFAULT_DATA_INITIALIZATION.md)
 
 **...configure monitoring**
 → Read [Analytics and Monitoring](ANALYTICS_AND_MONITORING.md)
@@ -168,22 +186,35 @@ docs/
 
 ### Customer Features
 ✅ Phone number authentication with OTP
-✅ Product browsing with search and filters
+✅ Product browsing with search and category filters
 ✅ Shopping cart with persistence
+✅ Discount pricing and special offers
+✅ Minimum order quantity requirements
+✅ Smart delivery charges (FREE for orders ≥ ₹200)
+✅ Order capacity warnings
 ✅ Multiple delivery addresses
 ✅ Order placement (Cash on Delivery)
 ✅ Order history and tracking
 ✅ Real-time order status notifications
+✅ Push notifications with sound alerts
+✅ Delivery proof viewing (photo + location)
+✅ Delivery feedback and remarks
 ✅ Profile management
 
 ### Admin Features
 ✅ Admin dashboard with statistics
+✅ Category management (create, edit, delete)
 ✅ Inventory management (CRUD operations)
+✅ Product discount management
+✅ Minimum order quantity configuration
 ✅ Product image upload
 ✅ Stock management
 ✅ Order management and fulfillment
+✅ Delivery proof capture (photo + GPS location)
+✅ App configuration (delivery charges, cart limits, capacity thresholds)
 ✅ Order status updates
 ✅ Customer notifications
+✅ Push notification management
 ✅ Analytics and reporting
 
 ### Technical Features
@@ -194,6 +225,10 @@ docs/
 ✅ Error handling and logging
 ✅ Performance monitoring
 ✅ Crash reporting
+✅ Push notifications (FCM)
+✅ Image compression and optimization
+✅ GPS location capture
+✅ Configurable business rules
 
 ---
 
@@ -299,9 +334,9 @@ Built with:
 
 ---
 
-**Last Updated**: January 2026
-**Documentation Version**: 1.0.0
-**App Version**: 1.0.0
+**Last Updated**: January 2025
+**Documentation Version**: 2.0.0 (Enhanced Features)
+**App Version**: 2.0.0
 
 ---
 

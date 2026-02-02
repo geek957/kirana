@@ -27,13 +27,37 @@ class AdminService {
     required String name,
     required String description,
     required double price,
+    double? discountPrice,
     required String category,
+    required String categoryId,
     required String unitSize,
     required int stockQuantity,
+    int minimumOrderQuantity = 1,
+    int? maximumOrderQuantity,
     String? imageUrl,
   }) async {
     // Verify user is admin
     await _authService.requireAdmin();
+
+    // Validate discount price
+    if (discountPrice != null && discountPrice >= price) {
+      throw Exception('Discount price must be less than regular price');
+    }
+
+    // Validate minimum order quantity
+    if (minimumOrderQuantity < 1) {
+      throw Exception('Minimum order quantity must be at least 1');
+    }
+
+    // Validate maximum order quantity if provided
+    if (maximumOrderQuantity != null) {
+      if (maximumOrderQuantity < 1) {
+        throw Exception('Maximum order quantity must be at least 1');
+      }
+      if (maximumOrderQuantity < minimumOrderQuantity) {
+        throw Exception('Maximum order quantity must be greater than or equal to minimum order quantity');
+      }
+    }
 
     try {
       final productId = _uuid.v4();
@@ -50,9 +74,13 @@ class AdminService {
         name: name,
         description: description,
         price: price,
+        discountPrice: discountPrice,
         category: category,
+        categoryId: categoryId,
         unitSize: unitSize,
         stockQuantity: stockQuantity,
+        minimumOrderQuantity: minimumOrderQuantity,
+        maximumOrderQuantity: maximumOrderQuantity,
         imageUrl: imageUrl ?? '',
         isActive: true,
         searchKeywords: searchKeywords,
@@ -86,14 +114,49 @@ class AdminService {
     String? name,
     String? description,
     double? price,
+    double? discountPrice,
     String? category,
+    String? categoryId,
     String? unitSize,
     int? stockQuantity,
+    int? minimumOrderQuantity,
+    int? maximumOrderQuantity,
     String? imageUrl,
     bool? isActive,
   }) async {
     // Verify user is admin
     await _authService.requireAdmin();
+
+    // Validate discount price if provided
+    if (discountPrice != null && price != null && discountPrice >= price) {
+      throw Exception('Discount price must be less than regular price');
+    }
+
+    // Validate minimum order quantity if provided
+    if (minimumOrderQuantity != null && minimumOrderQuantity < 1) {
+      throw Exception('Minimum order quantity must be at least 1');
+    }
+
+    // Validate maximum order quantity if provided
+    if (maximumOrderQuantity != null) {
+      if (maximumOrderQuantity < 1) {
+        throw Exception('Maximum order quantity must be at least 1');
+      }
+      // Get current minimum if minimumOrderQuantity not provided
+      int currentMinimum = minimumOrderQuantity ?? 1;
+      if (minimumOrderQuantity == null) {
+        final productDoc = await _firestore
+            .collection(_productsCollection)
+            .doc(productId)
+            .get();
+        if (productDoc.exists) {
+          currentMinimum = productDoc.data()?['minimumOrderQuantity'] as int? ?? 1;
+        }
+      }
+      if (maximumOrderQuantity < currentMinimum) {
+        throw Exception('Maximum order quantity must be greater than or equal to minimum order quantity');
+      }
+    }
 
     try {
       final updateData = <String, dynamic>{
@@ -103,9 +166,19 @@ class AdminService {
       if (name != null) updateData['name'] = name;
       if (description != null) updateData['description'] = description;
       if (price != null) updateData['price'] = price;
+      if (discountPrice != null) {
+        updateData['discountPrice'] = discountPrice;
+      }
       if (category != null) updateData['category'] = category;
+      if (categoryId != null) updateData['categoryId'] = categoryId;
       if (unitSize != null) updateData['unitSize'] = unitSize;
       if (stockQuantity != null) updateData['stockQuantity'] = stockQuantity;
+      if (minimumOrderQuantity != null) {
+        updateData['minimumOrderQuantity'] = minimumOrderQuantity;
+      }
+      if (maximumOrderQuantity != null) {
+        updateData['maximumOrderQuantity'] = maximumOrderQuantity;
+      }
       if (imageUrl != null) updateData['imageUrl'] = imageUrl;
       if (isActive != null) updateData['isActive'] = isActive;
 
@@ -396,6 +469,14 @@ class AdminService {
   Future<void> updateOrderStatus(String orderId, OrderStatus newStatus) async {
     // Verify user is admin
     await _authService.requireAdmin();
+
+    // Prevent direct delivered status updates - must use completeDelivery method
+    if (newStatus == OrderStatus.delivered) {
+      throw Exception(
+        'Cannot mark order as delivered through status update. '
+        'Use the "Mark as Delivered" button to capture delivery photo and location.'
+      );
+    }
 
     try {
       // Get the order first to retrieve customer information

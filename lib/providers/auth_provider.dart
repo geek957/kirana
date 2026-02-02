@@ -4,6 +4,7 @@ import '../models/customer.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
 import '../services/crashlytics_service.dart';
+import '../services/notification_service.dart';
 
 enum AuthStatus { initial, authenticated, unauthenticated, loading }
 
@@ -11,6 +12,7 @@ class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final AnalyticsService _analyticsService = AnalyticsService();
   final CrashlyticsService _crashlyticsService = CrashlyticsService();
+  final NotificationService _notificationService = NotificationService();
 
   AuthStatus _status = AuthStatus.initial;
   Customer? _currentCustomer;
@@ -75,6 +77,9 @@ class AuthProvider with ChangeNotifier {
         await _crashlyticsService.setUserRole(
           customer.isAdmin ? 'admin' : 'customer',
         );
+
+        // Save FCM token for push notifications
+        await _saveFCMToken(userId);
       } else {
         // User authenticated but no customer record
         _status = AuthStatus.unauthenticated;
@@ -246,5 +251,21 @@ class AuthProvider with ChangeNotifier {
   // Helper method to get time until next OTP attempt
   Duration? getTimeUntilNextOtpAttempt(String phoneNumber) {
     return _authService.getTimeUntilNextOtpAttempt(phoneNumber);
+  }
+
+  /// Save FCM token to user document for push notifications
+  Future<void> _saveFCMToken(String userId) async {
+    try {
+      final token = await _notificationService.getFCMToken();
+      if (token != null) {
+        await _authService.saveFCMToken(userId, token);
+        print('🟢 [AuthProvider] FCM token saved for user: $userId');
+      } else {
+        print('🟡 [AuthProvider] No FCM token available');
+      }
+    } catch (e) {
+      print('🔴 [AuthProvider] Failed to save FCM token: $e');
+      // Don't throw - this shouldn't block login
+    }
   }
 }

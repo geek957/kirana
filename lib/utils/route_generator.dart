@@ -15,9 +15,11 @@ import '../screens/address/address_form_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/inventory_management_screen.dart';
+import '../screens/admin/category_management_screen.dart';
 import '../screens/admin/product_form_screen.dart';
 import '../screens/admin/order_management_screen.dart';
 import '../screens/admin/admin_order_detail_screen.dart';
+import '../screens/admin/app_config_screen.dart';
 import '../models/product.dart';
 import '../models/order.dart';
 import '../models/address.dart';
@@ -146,6 +148,14 @@ class RouteGenerator {
           ),
         );
 
+      case Routes.adminCategoryManagement:
+        return MaterialPageRoute(
+          builder: (_) => const AuthGuard(
+            requireAdmin: true,
+            child: CategoryManagementScreen(),
+          ),
+        );
+
       case Routes.adminProductAdd:
         return MaterialPageRoute(
           builder: (_) =>
@@ -181,6 +191,12 @@ class RouteGenerator {
           );
         }
         return _errorRoute('Order ID required');
+
+      case Routes.adminAppConfig:
+        return MaterialPageRoute(
+          builder: (_) =>
+              const AuthGuard(requireAdmin: true, child: AppConfigScreen()),
+        );
 
       default:
         return _errorRoute('Route not found: ${settings.name}');

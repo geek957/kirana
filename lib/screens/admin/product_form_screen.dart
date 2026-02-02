@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/admin_provider.dart';
+import '../../providers/category_provider.dart';
 import '../../services/image_upload_service.dart';
+import '../../models/category.dart';
 
 class ProductFormScreen extends StatefulWidget {
   final String? productId; // null for add, non-null for edit
@@ -22,34 +24,31 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
+  final _discountPriceController = TextEditingController();
   final _unitSizeController = TextEditingController();
   final _stockController = TextEditingController();
+  final _minimumOrderQuantityController = TextEditingController();
+  final _maximumOrderQuantityController = TextEditingController();
 
-  String? _selectedCategory;
+  String? _selectedCategoryId;
   File? _selectedImage;
   String? _existingImageUrl;
   bool _isLoading = false;
   bool _isEditMode = false;
 
-  final List<String> _categories = [
-    'Fruits',
-    'Vegetables',
-    'Dairy',
-    'Snacks',
-    'Beverages',
-    'Grains',
-    'Spices',
-    'Bakery',
-    'Frozen',
-    'Other',
-  ];
-
   @override
   void initState() {
     super.initState();
     _isEditMode = widget.productId != null;
+    // Load categories first
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CategoryProvider>().loadCategories();
+    });
     if (_isEditMode) {
       _loadProductData();
+    } else {
+      // Set default minimum order quantity for new products
+      _minimumOrderQuantityController.text = '1';
     }
   }
 
@@ -64,9 +63,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           _nameController.text = product.name;
           _descriptionController.text = product.description;
           _priceController.text = product.price.toString();
+          if (product.discountPrice != null) {
+            _discountPriceController.text = product.discountPrice.toString();
+          }
           _unitSizeController.text = product.unitSize;
           _stockController.text = product.stockQuantity.toString();
-          _selectedCategory = product.category;
+          _selectedCategoryId = product.categoryId;
+          _minimumOrderQuantityController.text = product.minimumOrderQuantity
+              .toString();
+          if (product.maximumOrderQuantity != null) {
+            _maximumOrderQuantityController.text = product.maximumOrderQuantity
+                .toString();
+          }
           _existingImageUrl = product.imageUrl;
         });
       }
@@ -86,8 +94,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _discountPriceController.dispose();
     _unitSizeController.dispose();
     _stockController.dispose();
+    _minimumOrderQuantityController.dispose();
+    _maximumOrderQuantityController.dispose();
     super.dispose();
   }
 
@@ -199,32 +210,91 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Discount Price Field
+                    TextFormField(
+                      controller: _discountPriceController,
+                      decoration: InputDecoration(
+                        labelText: 'Discount Price (₹)',
+                        hintText: 'Optional - Leave empty for no discount',
+                        border: const OutlineInputBorder(),
+                        prefixText: '₹ ',
+                        suffixIcon: _discountPriceController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  setState(() {
+                                    _discountPriceController.clear();
+                                  });
+                                },
+                              )
+                            : null,
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {}); // Rebuild to show/hide clear button
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return null; // Optional field
+                        }
+                        final discountPrice = double.tryParse(value);
+                        if (discountPrice == null || discountPrice <= 0) {
+                          return 'Invalid discount price';
+                        }
+                        final price = double.tryParse(_priceController.text);
+                        if (price != null && discountPrice >= price) {
+                          return 'Must be less than regular price';
+                        }
+                        return null;
+                      },
+                    ),
+                    // Discount percentage display
+                    if (_discountPriceController.text.isNotEmpty &&
+                        _priceController.text.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                        child: _buildDiscountPercentageDisplay(),
+                      ),
+                    const SizedBox(height: 16),
+
                     // Category and Stock Row
                     Row(
                       children: [
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedCategory,
-                            decoration: const InputDecoration(
-                              labelText: 'Category *',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: _categories.map((category) {
-                              return DropdownMenuItem(
-                                value: category,
-                                child: Text(category),
+                          child: Consumer<CategoryProvider>(
+                            builder: (context, categoryProvider, child) {
+                              final categories = categoryProvider.categories;
+                              return DropdownButtonFormField<String>(
+                                value: _selectedCategoryId,
+                                decoration: const InputDecoration(
+                                  labelText: 'Category *',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: categories.map((category) {
+                                  return DropdownMenuItem(
+                                    value: category.id,
+                                    child: Text(category.name),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedCategoryId = value;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Please select category';
+                                  }
+                                  return null;
+                                },
                               );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCategory = value;
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Please select category';
-                              }
-                              return null;
                             },
                           ),
                         ),
@@ -248,6 +318,87 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                               final stock = int.tryParse(value);
                               if (stock == null || stock < 0) {
                                 return 'Invalid';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Order Quantity Fields
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _minimumOrderQuantityController,
+                            decoration: const InputDecoration(
+                              labelText: 'Min. Order Qty *',
+                              hintText: '1',
+                              border: OutlineInputBorder(),
+                              helperText: 'Minimum quantity (default: 1)',
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Required';
+                              }
+                              final minQty = int.tryParse(value);
+                              if (minQty == null || minQty < 1) {
+                                return 'Must be at least 1';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _maximumOrderQuantityController,
+                            decoration: InputDecoration(
+                              labelText: 'Max. Order Qty',
+                              hintText: 'Unlimited',
+                              border: const OutlineInputBorder(),
+                              helperText: 'Optional - Leave empty for unlimited',
+                              suffixIcon: _maximumOrderQuantityController
+                                      .text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        setState(() {
+                                          _maximumOrderQuantityController
+                                              .clear();
+                                        });
+                                      },
+                                    )
+                                  : null,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            onChanged: (value) {
+                              setState(
+                                () {},
+                              ); // Rebuild to show/hide clear button
+                            },
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return null; // Optional field
+                              }
+                              final maxQty = int.tryParse(value);
+                              if (maxQty == null || maxQty < 1) {
+                                return 'Must be at least 1';
+                              }
+                              final minQty = int.tryParse(
+                                _minimumOrderQuantityController.text,
+                              );
+                              if (minQty != null && maxQty < minQty) {
+                                return 'Must be >= min qty';
                               }
                               return null;
                             },
@@ -429,8 +580,58 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     }
   }
 
+  Widget _buildDiscountPercentageDisplay() {
+    final price = double.tryParse(_priceController.text);
+    final discountPrice = double.tryParse(_discountPriceController.text);
+
+    if (price == null || discountPrice == null || discountPrice >= price) {
+      return const SizedBox.shrink();
+    }
+
+    final percentage = ((price - discountPrice) / price) * 100;
+    final savings = price - discountPrice;
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.green.shade100,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            '${percentage.toStringAsFixed(0)}% OFF',
+            style: TextStyle(
+              color: Colors.green.shade800,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'Save ₹${savings.toStringAsFixed(2)}',
+          style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Get the selected category to retrieve the category name
+    final categoryProvider = context.read<CategoryProvider>();
+    final selectedCategory = categoryProvider.getCategoryById(
+      _selectedCategoryId!,
+    );
+
+    if (selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selected category not found')),
+      );
       return;
     }
 
@@ -453,6 +654,23 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         );
       }
 
+      // Parse discount price (null if empty)
+      double? discountPrice;
+      if (_discountPriceController.text.trim().isNotEmpty) {
+        discountPrice = double.parse(_discountPriceController.text);
+      }
+
+      // Parse minimum order quantity
+      final minimumOrderQuantity = int.parse(
+        _minimumOrderQuantityController.text,
+      );
+
+      // Parse maximum order quantity (null if empty)
+      int? maximumOrderQuantity;
+      if (_maximumOrderQuantityController.text.trim().isNotEmpty) {
+        maximumOrderQuantity = int.parse(_maximumOrderQuantityController.text);
+      }
+
       if (_isEditMode) {
         // Update existing product
         await adminProvider.updateProduct(
@@ -460,9 +678,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text),
-          category: _selectedCategory!,
+          discountPrice: discountPrice,
+          category: selectedCategory.name,
+          categoryId: _selectedCategoryId!,
           unitSize: _unitSizeController.text.trim(),
           stockQuantity: int.parse(_stockController.text),
+          minimumOrderQuantity: minimumOrderQuantity,
+          maximumOrderQuantity: maximumOrderQuantity,
           imageUrl: imageUrl,
         );
 
@@ -478,9 +700,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text),
-          category: _selectedCategory!,
+          discountPrice: discountPrice,
+          category: selectedCategory.name,
+          categoryId: _selectedCategoryId!,
           unitSize: _unitSizeController.text.trim(),
           stockQuantity: int.parse(_stockController.text),
+          minimumOrderQuantity: minimumOrderQuantity,
+          maximumOrderQuantity: maximumOrderQuantity,
           imageUrl: imageUrl ?? '',
         );
 

@@ -240,7 +240,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       textAlign: TextAlign.center,
                       maxLength: 1,
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],

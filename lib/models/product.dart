@@ -5,11 +5,15 @@ class Product {
   final String name;
   final String description;
   final double price;
+  final double? discountPrice;
   final String category;
+  final String categoryId;
   final String unitSize;
   final int stockQuantity;
   final String imageUrl;
   final bool isActive;
+  final int minimumOrderQuantity;
+  final int? maximumOrderQuantity;
   final List<String> searchKeywords;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -19,11 +23,15 @@ class Product {
     required this.name,
     required this.description,
     required this.price,
+    this.discountPrice,
     required this.category,
+    required this.categoryId,
     required this.unitSize,
     required this.stockQuantity,
     required this.imageUrl,
     this.isActive = true,
+    this.minimumOrderQuantity = 1,
+    this.maximumOrderQuantity,
     List<String>? searchKeywords,
     required this.createdAt,
     required this.updatedAt,
@@ -44,11 +52,15 @@ class Product {
       'name': name,
       'description': description,
       'price': price,
+      'discountPrice': discountPrice,
       'category': category,
+      'categoryId': categoryId,
       'unitSize': unitSize,
       'stockQuantity': stockQuantity,
       'imageUrl': imageUrl,
       'isActive': isActive,
+      'minimumOrderQuantity': minimumOrderQuantity,
+      'maximumOrderQuantity': maximumOrderQuantity,
       'searchKeywords': searchKeywords,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -74,11 +86,17 @@ class Product {
       name: json['name'] as String,
       description: json['description'] as String,
       price: (json['price'] as num).toDouble(),
+      discountPrice: json['discountPrice'] != null
+          ? (json['discountPrice'] as num).toDouble()
+          : null,
       category: json['category'] as String,
+      categoryId: json['categoryId'] as String,
       unitSize: json['unitSize'] as String,
       stockQuantity: json['stockQuantity'] as int,
       imageUrl: json['imageUrl'] as String,
       isActive: json['isActive'] as bool? ?? true,
+      minimumOrderQuantity: json['minimumOrderQuantity'] as int? ?? 1,
+      maximumOrderQuantity: json['maximumOrderQuantity'] as int?,
       searchKeywords: (json['searchKeywords'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
@@ -92,11 +110,15 @@ class Product {
     String? name,
     String? description,
     double? price,
+    double? discountPrice,
     String? category,
+    String? categoryId,
     String? unitSize,
     int? stockQuantity,
     String? imageUrl,
     bool? isActive,
+    int? minimumOrderQuantity,
+    int? maximumOrderQuantity,
     List<String>? searchKeywords,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -106,11 +128,15 @@ class Product {
       name: name ?? this.name,
       description: description ?? this.description,
       price: price ?? this.price,
+      discountPrice: discountPrice ?? this.discountPrice,
       category: category ?? this.category,
+      categoryId: categoryId ?? this.categoryId,
       unitSize: unitSize ?? this.unitSize,
       stockQuantity: stockQuantity ?? this.stockQuantity,
       imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
+      minimumOrderQuantity: minimumOrderQuantity ?? this.minimumOrderQuantity,
+      maximumOrderQuantity: maximumOrderQuantity ?? this.maximumOrderQuantity,
       searchKeywords: searchKeywords ?? this.searchKeywords,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -125,11 +151,15 @@ class Product {
         other.name == name &&
         other.description == description &&
         other.price == price &&
+        other.discountPrice == discountPrice &&
         other.category == category &&
+        other.categoryId == categoryId &&
         other.unitSize == unitSize &&
         other.stockQuantity == stockQuantity &&
         other.imageUrl == imageUrl &&
         other.isActive == isActive &&
+        other.minimumOrderQuantity == minimumOrderQuantity &&
+        other.maximumOrderQuantity == maximumOrderQuantity &&
         _listEquals(other.searchKeywords, searchKeywords) &&
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt;
@@ -142,15 +172,58 @@ class Product {
       name,
       description,
       price,
+      discountPrice,
       category,
+      categoryId,
       unitSize,
       stockQuantity,
       imageUrl,
       isActive,
+      minimumOrderQuantity,
+      maximumOrderQuantity,
       Object.hashAll(searchKeywords),
       createdAt,
       updatedAt,
     );
+  }
+
+  /// Returns the effective price (discount price if available, otherwise regular price)
+  double getEffectivePrice() {
+    return discountPrice ?? price;
+  }
+
+  /// Calculates the total savings when buying a given quantity
+  /// Returns 0.0 if no discount is applied
+  double calculateSavings(int quantity) {
+    if (discountPrice == null) return 0.0;
+    return (price - discountPrice!) * quantity;
+  }
+
+  /// Returns the discount percentage as a formatted string
+  /// Returns empty string if no discount is applied
+  String getDiscountPercentage() {
+    if (discountPrice == null) return '';
+    double percentage = ((price - discountPrice!) / price) * 100;
+    return '${percentage.toStringAsFixed(0)}% OFF';
+  }
+
+  /// Checks if a quantity is within the allowed order limits
+  /// Returns true if quantity is valid (between min and max)
+  bool isQuantityValid(int quantity) {
+    if (quantity < minimumOrderQuantity) return false;
+    if (maximumOrderQuantity != null && quantity > maximumOrderQuantity!) {
+      return false;
+    }
+    return true;
+  }
+
+  /// Returns the maximum allowed quantity considering stock and max order limit
+  /// Returns the lesser of stock quantity and maximum order quantity
+  int getMaxAllowedQuantity() {
+    if (maximumOrderQuantity == null) return stockQuantity;
+    return maximumOrderQuantity! < stockQuantity
+        ? maximumOrderQuantity!
+        : stockQuantity;
   }
 
   bool _listEquals<T>(List<T>? a, List<T>? b) {

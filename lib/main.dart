@@ -10,10 +10,12 @@ import 'providers/address_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/admin_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/category_provider.dart';
 import 'services/encryption_service.dart';
 import 'services/navigation_service.dart';
 import 'services/analytics_service.dart';
 import 'services/crashlytics_service.dart';
+import 'services/notification_service.dart';
 import 'utils/route_generator.dart';
 import 'utils/auth_guard.dart';
 import 'utils/theme.dart';
@@ -36,6 +38,9 @@ void main() async {
   // Initialize encryption service
   await EncryptionService().initialize();
 
+  // Initialize Firebase Cloud Messaging
+  await NotificationService().initializeFCM();
+
   runApp(const MyApp());
 }
 
@@ -53,6 +58,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
       ],
       child: MaterialApp(
         title: 'Kirana - Online Grocery',

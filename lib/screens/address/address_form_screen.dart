@@ -35,6 +35,12 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       _landmarkController.text = widget.address!.landmark ?? '';
       _contactNumberController.text = widget.address!.contactNumber;
       _isDefault = widget.address!.isDefault;
+    } else {
+      // Pre-populate contact number with customer's phone number for new addresses
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.currentCustomer != null) {
+        _contactNumberController.text = authProvider.currentCustomer!.phoneNumber;
+      }
     }
   }
 

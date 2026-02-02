@@ -21,8 +21,10 @@ class Routes {
   // Admin routes
   static const String adminDashboard = '/admin/dashboard';
   static const String adminInventory = '/admin/inventory';
+  static const String adminCategoryManagement = '/admin/categories';
   static const String adminProductAdd = '/admin/product/add';
   static const String adminProductEdit = '/admin/product/edit';
   static const String adminOrders = '/admin/orders';
   static const String adminOrderDetail = '/admin/order/detail';
+  static const String adminAppConfig = '/admin/app-config';
 }

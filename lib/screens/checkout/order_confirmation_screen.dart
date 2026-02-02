@@ -86,6 +86,46 @@ class OrderConfirmationScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
+                            'Subtotal',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            '₹${order.totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Delivery',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            order.deliveryCharge == 0
+                                ? 'Free'
+                                : '₹${order.deliveryCharge.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: order.deliveryCharge == 0
+                                  ? Colors.green
+                                  : null,
+                              fontWeight: order.deliveryCharge == 0
+                                  ? FontWeight.bold
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
                             'Total Amount',
                             style: TextStyle(
                               fontSize: 16,
@@ -93,7 +133,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '₹${order.totalAmount.toStringAsFixed(2)}',
+                            '₹${(order.totalAmount + order.deliveryCharge).toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

@@ -2,13 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/order_provider.dart';
 import '../../models/cart_item.dart';
 import '../../widgets/customer_bottom_nav.dart';
 import '../../utils/routes.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  List<String> _validationErrors = [];
+  bool _isValidating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start watching pending order count for capacity warnings
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+      orderProvider.startWatchingPendingCount();
+      _validateCart();
+    });
+  }
+
+  /// Validate cart items against minimum quantity requirements
+  Future<void> _validateCart() async {
+    setState(() {
+      _isValidating = true;
+    });
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final errors = await cartProvider.getCartValidationErrors();
+
+    setState(() {
+      _validationErrors = errors;
+      _isValidating = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +73,13 @@ class CartScreen extends StatelessWidget {
 
           return Column(
             children: [
+              // Order capacity warning banner
+              _buildCapacityWarningBanner(context),
+              // Cart value validation banner
+              _buildCartValueBanner(context, cartProvider),
+              // Minimum quantity validation errors
+              if (_validationErrors.isNotEmpty)
+                _buildValidationErrorsBanner(context),
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -53,12 +95,188 @@ class CartScreen extends StatelessWidget {
                   },
                 ),
               ),
-              _buildCartSummary(context, cart, customerId),
+              _buildCartSummary(context, cart, customerId, cartProvider),
             ],
           );
         },
       ),
       bottomNavigationBar: const CustomerBottomNav(currentIndex: 1),
+    );
+  }
+
+  /// Build order capacity warning banner
+  /// Shows warning when pending orders >= warning threshold
+  Widget _buildCapacityWarningBanner(BuildContext context) {
+    return Consumer<OrderProvider>(
+      builder: (context, orderProvider, child) {
+        final warning = orderProvider.capacityWarning;
+
+        if (warning == null) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          color: orderProvider.canPlaceOrder
+              ? Colors.orange.shade100
+              : Colors.red.shade100,
+          child: Row(
+            children: [
+              Icon(
+                orderProvider.canPlaceOrder
+                    ? Icons.warning_amber
+                    : Icons.error_outline,
+                color: orderProvider.canPlaceOrder
+                    ? Colors.orange.shade900
+                    : Colors.red.shade900,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      orderProvider.canPlaceOrder
+                          ? 'High Order Volume'
+                          : 'Order Capacity Full',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: orderProvider.canPlaceOrder
+                            ? Colors.orange.shade900
+                            : Colors.red.shade900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      warning,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: orderProvider.canPlaceOrder
+                            ? Colors.orange.shade800
+                            : Colors.red.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Pending orders: ${orderProvider.pendingOrderCount}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: orderProvider.canPlaceOrder
+                            ? Colors.orange.shade700
+                            : Colors.red.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build cart value validation banner
+  /// Shows warning when approaching max cart value or error when exceeded
+  Widget _buildCartValueBanner(
+    BuildContext context,
+    CartProvider cartProvider,
+  ) {
+    final isValid = cartProvider.isCartValueValid;
+    final error = cartProvider.cartValueError;
+
+    if (isValid && error == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      color: Colors.red.shade100,
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red.shade900),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cart Value Limit Exceeded',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  error ?? 'Please reduce items to proceed with checkout',
+                  style: TextStyle(fontSize: 13, color: Colors.red.shade800),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build minimum quantity validation errors banner
+  /// Shows errors for items that don't meet minimum quantity requirements
+  Widget _buildValidationErrorsBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      color: Colors.amber.shade100,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Colors.amber.shade900),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Minimum Quantity Requirements',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ..._validationErrors.map(
+                  (error) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.amber.shade800,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            error,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.amber.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -177,17 +395,11 @@ class CartScreen extends StatelessWidget {
                                       item.productId,
                                       item.quantity - 1,
                                     );
+                                    // Re-validate cart after quantity change
+                                    _validateCart();
                                   } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(e.toString()),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
+                                    // Silent error - no SnackBar
+                                    print('Error updating quantity: $e');
                                   }
                                 }
                               },
@@ -215,15 +427,11 @@ class CartScreen extends StatelessWidget {
                                     item.productId,
                                     item.quantity + 1,
                                   );
+                                  // Re-validate cart after quantity change
+                                  _validateCart();
                                 } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(e.toString()),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
+                                  // Silent error - no SnackBar
+                                  print('Error updating quantity: $e');
                                 }
                               },
                               padding: EdgeInsets.zero,
@@ -280,20 +488,14 @@ class CartScreen extends StatelessWidget {
                       customerId,
                       item.productId,
                     );
+                    // Re-validate cart after item removal
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Item removed from cart')),
-                      );
+                      _validateCart();
+                      // Silent removal - no SnackBar
                     }
                   } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(e.toString()),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
+                    // Silent error - no SnackBar
+                    print('Error removing from cart: $e');
                   }
                 }
               },
@@ -308,89 +510,208 @@ class CartScreen extends StatelessWidget {
     BuildContext context,
     dynamic cart,
     String customerId,
+    CartProvider cartProvider,
   ) {
-    const deliveryFee = 0.0; // Free delivery
+    return Consumer<OrderProvider>(
+      builder: (context, orderProvider, child) {
+        final deliveryCharge = cartProvider.deliveryCharge;
+        final isFreeDelivery = cartProvider.isFreeDeliveryEligible;
+        final amountForFreeDelivery = cartProvider.amountForFreeDelivery;
+        final isCartValid = cartProvider.isCartValueValid;
+        final canPlaceOrder = orderProvider.canPlaceOrder;
+        final hasValidationErrors = _validationErrors.isNotEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, -3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Subtotal', style: Theme.of(context).textTheme.bodyLarge),
-                Text(
-                  '₹${cart.totalAmount.toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Delivery', style: Theme.of(context).textTheme.bodyLarge),
-                Text(
-                  deliveryFee == 0
-                      ? 'Free'
-                      : '₹${deliveryFee.toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: deliveryFee == 0 ? Colors.green : null,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '₹${(cart.totalAmount + deliveryFee).toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, Routes.checkout);
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Proceed to Checkout',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+        // Determine if checkout should be disabled
+        final isCheckoutDisabled =
+            !isCartValid ||
+            !canPlaceOrder ||
+            hasValidationErrors ||
+            _isValidating;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.2),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, -3),
               ),
+            ],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Subtotal
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Subtotal',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    Text(
+                      '₹${cart.totalAmount.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Delivery charge with free delivery indicator
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Delivery',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    Row(
+                      children: [
+                        if (!isFreeDelivery && deliveryCharge > 0)
+                          Text(
+                            '₹${deliveryCharge.toStringAsFixed(2)}',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        if (isFreeDelivery)
+                          Row(
+                            children: [
+                              Text(
+                                '₹${deliveryCharge.toStringAsFixed(2)}',
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      decoration: TextDecoration.lineThrough,
+                                      color: Colors.grey,
+                                    ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Free',
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                // Free delivery progress indicator
+                if (!isFreeDelivery && amountForFreeDelivery > 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.local_shipping_outlined,
+                          color: Colors.green.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Add ₹${amountForFreeDelivery.toStringAsFixed(2)} more for free delivery',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.green.shade900,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const Divider(height: 24),
+
+                // Total
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '₹${cartProvider.totalWithDelivery.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Proceed to Checkout button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isCheckoutDisabled
+                        ? null
+                        : () {
+                            Navigator.pushNamed(context, Routes.checkout);
+                          },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: isCheckoutDisabled
+                          ? Colors.grey.shade300
+                          : null,
+                    ),
+                    child: Text(
+                      isCheckoutDisabled
+                          ? 'Cannot Proceed to Checkout'
+                          : 'Proceed to Checkout',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isCheckoutDisabled ? Colors.grey.shade600 : null,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Explanation text when checkout is disabled
+                if (isCheckoutDisabled) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    !isCartValid
+                        ? 'Cart value exceeds maximum limit'
+                        : !canPlaceOrder
+                        ? 'Order capacity is full'
+                        : hasValidationErrors
+                        ? 'Please fix minimum quantity requirements'
+                        : 'Validating cart...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

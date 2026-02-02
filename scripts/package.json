@@ -1,0 +1,24 @@
+{
+  "name": "kirana-initialization-scripts",
+  "version": "1.0.0",
+  "description": "Initialization scripts for Kirana Grocery App default data",
+  "main": "initialize_default_data.js",
+  "scripts": {
+    "init": "node initialize_default_data.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "firebase",
+    "firestore",
+    "initialization",
+    "kirana"
+  ],
+  "author": "Kirana Team",
+  "license": "MIT",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

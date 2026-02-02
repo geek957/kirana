@@ -46,6 +46,12 @@ class Order {
   final PaymentMethod paymentMethod;
   final DateTime createdAt;
   final DateTime? deliveredAt;
+  final String? deliveryPhotoUrl;
+  final GeoPoint? deliveryLocation;
+  final String? customerRemarks;
+  final DateTime? remarksTimestamp;
+  final int? rating;
+  final double deliveryCharge;
 
   Order({
     required this.id,
@@ -60,6 +66,12 @@ class Order {
     required this.paymentMethod,
     required this.createdAt,
     this.deliveredAt,
+    this.deliveryPhotoUrl,
+    this.deliveryLocation,
+    this.customerRemarks,
+    this.remarksTimestamp,
+    this.rating,
+    required this.deliveryCharge,
   });
 
   Map<String, dynamic> toJson() {
@@ -76,6 +88,17 @@ class Order {
       'paymentMethod': paymentMethod.toJson(),
       'createdAt': createdAt.toIso8601String(),
       'deliveredAt': deliveredAt?.toIso8601String(),
+      'deliveryPhotoUrl': deliveryPhotoUrl,
+      'deliveryLocation': deliveryLocation != null
+          ? {
+              'latitude': deliveryLocation!.latitude,
+              'longitude': deliveryLocation!.longitude,
+            }
+          : null,
+      'customerRemarks': customerRemarks,
+      'remarksTimestamp': remarksTimestamp?.toIso8601String(),
+      'rating': rating,
+      'deliveryCharge': deliveryCharge,
     };
   }
 
@@ -110,6 +133,21 @@ class Order {
       deliveredAt: json['deliveredAt'] != null
           ? _parseDateTime(json['deliveredAt'])
           : null,
+      deliveryPhotoUrl: json['deliveryPhotoUrl'] as String?,
+      deliveryLocation: json['deliveryLocation'] != null
+          ? (json['deliveryLocation'] is GeoPoint
+                ? json['deliveryLocation'] as GeoPoint
+                : GeoPoint(
+                    (json['deliveryLocation']['latitude'] as num).toDouble(),
+                    (json['deliveryLocation']['longitude'] as num).toDouble(),
+                  ))
+          : null,
+      customerRemarks: json['customerRemarks'] as String?,
+      remarksTimestamp: json['remarksTimestamp'] != null
+          ? _parseDateTime(json['remarksTimestamp'])
+          : null,
+      rating: json['rating'] as int?,
+      deliveryCharge: (json['deliveryCharge'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -126,6 +164,12 @@ class Order {
     PaymentMethod? paymentMethod,
     DateTime? createdAt,
     DateTime? deliveredAt,
+    String? deliveryPhotoUrl,
+    GeoPoint? deliveryLocation,
+    String? customerRemarks,
+    DateTime? remarksTimestamp,
+    int? rating,
+    double? deliveryCharge,
   }) {
     return Order(
       id: id ?? this.id,
@@ -140,6 +184,12 @@ class Order {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       createdAt: createdAt ?? this.createdAt,
       deliveredAt: deliveredAt ?? this.deliveredAt,
+      deliveryPhotoUrl: deliveryPhotoUrl ?? this.deliveryPhotoUrl,
+      deliveryLocation: deliveryLocation ?? this.deliveryLocation,
+      customerRemarks: customerRemarks ?? this.customerRemarks,
+      remarksTimestamp: remarksTimestamp ?? this.remarksTimestamp,
+      rating: rating ?? this.rating,
+      deliveryCharge: deliveryCharge ?? this.deliveryCharge,
     );
   }
 
@@ -158,7 +208,13 @@ class Order {
         other.status == status &&
         other.paymentMethod == paymentMethod &&
         other.createdAt == createdAt &&
-        other.deliveredAt == deliveredAt;
+        other.deliveredAt == deliveredAt &&
+        other.deliveryPhotoUrl == deliveryPhotoUrl &&
+        other.deliveryLocation == deliveryLocation &&
+        other.customerRemarks == customerRemarks &&
+        other.remarksTimestamp == remarksTimestamp &&
+        other.rating == rating &&
+        other.deliveryCharge == deliveryCharge;
   }
 
   @override
@@ -176,6 +232,12 @@ class Order {
       paymentMethod,
       createdAt,
       deliveredAt,
+      deliveryPhotoUrl,
+      deliveryLocation,
+      customerRemarks,
+      remarksTimestamp,
+      rating,
+      deliveryCharge,
     );
   }
 

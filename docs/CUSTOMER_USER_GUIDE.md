@@ -58,14 +58,32 @@ The home screen displays all available grocery items with:
 
 ### Filtering by Category
 
-Use category chips to filter products:
-- All Products
-- Fruits
-- Vegetables
-- Dairy
-- Snacks
-- Beverages
-- And more...
+**Category Chips**:
+- Located below the search bar
+- Horizontally scrollable
+- Tap any category to filter products
+
+**Available Categories**:
+- **All Products**: Shows everything (default)
+- **Fresh Fruits**: Apples, bananas, oranges, etc.
+- **Fresh Vegetables**: Tomatoes, onions, leafy greens, etc.
+- **Dairy Products**: Milk, cheese, yogurt, butter
+- **Snacks & Beverages**: Chips, cookies, soft drinks, juices
+- **Grains & Cereals**: Rice, wheat, oats, etc.
+- **Spices & Condiments**: Spices, sauces, oils
+- **Personal Care**: Soaps, shampoos, toiletries
+- **Household Items**: Cleaning supplies, paper products
+- And more categories as available
+
+**How to Use**:
+1. Tap a category chip to filter
+2. Only products in that category will show
+3. Active category is highlighted
+4. Tap "All" to see all products again
+
+**Product Count Badge**:
+- Each category shows number of products
+- Example: "Fresh Fruits (15)" means 15 fruit products available
 
 ### Viewing Product Details
 
@@ -73,13 +91,18 @@ Use category chips to filter products:
 2. **Product Information**:
    - High-quality product image
    - Detailed description
-   - Price per unit
+   - **Regular price** (shown with strikethrough if discounted)
+   - **Discount price** (if available, shown in green)
+   - **Discount percentage** (e.g., "20% OFF" badge)
    - Unit size (kg, L, pack, etc.)
+   - **Minimum order quantity** (e.g., "Min: 2 kg")
    - Available stock quantity
    - Category
 
 3. **Add to Cart**:
+   - Quantity selector starts at minimum quantity
    - Use +/- buttons to select quantity
+   - Cannot select less than minimum quantity
    - Tap "Add to Cart" button
    - Item will be added to your shopping cart
 
@@ -87,6 +110,18 @@ Use category chips to filter products:
 - ✅ **In Stock**: Product is available
 - ⚠️ **Low Stock**: Limited quantity available
 - ❌ **Out of Stock**: Currently unavailable (cannot add to cart)
+
+**Discount Pricing**:
+- Original price shown with strikethrough: ~~₹100~~
+- Discount price shown prominently: **₹80**
+- Savings displayed: "Save ₹20 (20% OFF)"
+- Discount automatically applied in cart
+
+**Minimum Order Quantity**:
+- Clearly displayed: "Minimum Order: 2 kg"
+- Quantity selector starts at this minimum
+- Cannot add less than minimum to cart
+- Error message if you try to add less
 
 ---
 
@@ -113,9 +148,40 @@ Use category chips to filter products:
 ### Cart Summary
 
 Your cart displays:
-- **Subtotal**: Sum of all item prices
-- **Delivery Fee**: Currently FREE
+- **Subtotal**: Sum of all item prices (with discounts applied)
+- **Delivery Charge**: 
+  - ₹20 for orders below ₹200
+  - **FREE** for orders ₹200 and above
 - **Total Amount**: Final amount to pay
+- **Savings**: Total amount saved from discounts (if any)
+
+**Free Delivery Progress**:
+- If cart is below ₹200, you'll see:
+  - "Add ₹X more for FREE delivery"
+  - Progress bar showing how close you are
+  - Encourages you to add more items
+
+**Cart Value Limits**:
+- Maximum cart value: ₹3000
+- Warning shown when approaching limit
+- Cannot checkout if cart exceeds ₹3000
+- Remove items to proceed if over limit
+
+**Order Capacity Warning**:
+- If many orders are pending, you'll see:
+  - ⚠️ "Delivery might be delayed due to high demand"
+  - Current pending order count
+  - You can still place your order
+- If capacity is full (rare):
+  - ❌ "Order capacity full. Please try again later"
+  - Cannot place order until capacity frees up
+  - Try again after some time
+
+**Minimum Quantity Validation**:
+- Cart checks all items meet minimum quantities
+- Error shown if any item is below minimum
+- Must fix before checkout
+- Example: "Milk requires minimum 2 L"
 
 ---
 
@@ -125,21 +191,37 @@ Your cart displays:
 
 1. **Proceed to Checkout**: Tap the "Proceed to Checkout" button from cart screen
 
-2. **Select Delivery Address**:
+2. **Pre-Checkout Validations**:
+   - All items meet minimum quantities
+   - Cart value is within limits (≤ ₹3000)
+   - Order capacity is available
+   - If any validation fails, you'll see clear error messages
+
+3. **Select Delivery Address**:
    - Choose from saved addresses
    - Or add a new address
    - Mark your preferred address as default
 
-3. **Review Order Summary**:
+4. **Review Order Summary**:
    - Verify all items and quantities
    - Check delivery address
-   - Confirm total amount
+   - Review pricing:
+     - **Subtotal**: Total of all items
+     - **Delivery Charge**: ₹20 or FREE (if ≥ ₹200)
+     - **Total Amount**: Final amount to pay
+     - **Savings**: Discount savings (if any)
 
-4. **Payment Method**:
+5. **Payment Method**:
    - Currently: Cash on Delivery (COD) only
    - Pay when you receive your order
 
-5. **Place Order**:
+6. **No-Return Policy** (First Order Only):
+   - Read the no-return policy
+   - Products are verified at delivery
+   - Check items before accepting delivery
+   - Tick checkbox to acknowledge
+
+7. **Place Order**:
    - Tap "Place Order" button
    - Order confirmation screen appears
    - Note your Order ID for reference
@@ -151,6 +233,7 @@ After placing an order:
 - 📧 Order details are saved
 - 🔔 You'll receive status notifications
 - 🛒 Your cart is cleared automatically
+- 📱 Push notification sent to your device
 
 ---
 
@@ -222,6 +305,75 @@ Tap on any order to view:
 - Payment method
 - Current status
 - Status history
+- **Delivery proof** (for delivered orders)
+- **Your delivery feedback** (for delivered orders)
+
+### Delivery Proof (Delivered Orders)
+
+For delivered orders, you can view:
+
+**Delivery Photo**:
+- Photo of your delivered items
+- Taken by delivery person at delivery
+- Tap to view full size
+- Pinch to zoom
+- Proof of successful delivery
+
+**Delivery Location**:
+- GPS coordinates of delivery
+- Map view showing delivery location
+- Confirms delivery at correct address
+- Delivery timestamp
+
+**Why Delivery Proof**:
+- Transparency in delivery process
+- Visual confirmation of delivery
+- Location verification
+- Reduces disputes
+- Professional service
+
+### Adding Delivery Feedback
+
+After your order is delivered, you can share your experience:
+
+**How to Add Feedback**:
+1. Open delivered order details
+2. Scroll to "Delivery Feedback" section
+3. Tap "Add Feedback" or "Add Remarks"
+4. Type your feedback (up to 500 characters)
+5. Tap "Submit" or "Save"
+
+**What to Include**:
+- Delivery experience
+- Product quality
+- Delivery person behavior
+- Any issues or concerns
+- Positive feedback
+- Suggestions for improvement
+
+**Editing Feedback**:
+- You can edit feedback for 24 hours after delivery
+- After 24 hours, feedback cannot be changed
+- Tap "Edit" button to modify
+- Save changes when done
+
+**Character Limit**:
+- Maximum 500 characters
+- Character counter shown while typing
+- Keep feedback concise and relevant
+
+**Feedback Visibility**:
+- Admin can see your feedback
+- Used to improve service quality
+- Helps identify issues
+- Recognizes good service
+
+**Example Feedback**:
+- ✅ "Great service! Items were fresh and delivery was on time."
+- ✅ "One item was slightly damaged but overall good experience."
+- ✅ "Delivery person was very polite and professional."
+- ❌ Don't use offensive language
+- ❌ Keep it constructive and helpful
 
 ### Cancelling an Order
 
@@ -269,19 +421,50 @@ Tap the profile icon to access:
 
 ## Notifications
 
+### Push Notifications
+
+**What are Push Notifications?**:
+- Alerts sent to your device
+- Appear in notification tray
+- Include sound alert
+- Work even when app is closed
+- Keep you updated in real-time
+
+**Notification Types**:
+- 📦 Order confirmed
+- 👨‍🍳 Order being prepared
+- 🚚 Order out for delivery
+- ✅ Order delivered (with photo)
+- 📢 Admin announcements
+- ⚠️ Order capacity warnings
+
+**Notification Sounds**:
+- Custom sound plays with each notification
+- Distinct and attention-grabbing
+- Respects device volume settings
+- Can be enabled/disabled in settings
+
+**Managing Notification Sounds**:
+1. Go to Profile → Settings
+2. Find "Notification Sounds" option
+3. Toggle on/off as preferred
+4. Changes apply immediately
+
 ### Notification Bell
 
 - Located in the top-right corner
 - Badge shows unread notification count
 - Tap to view all notifications
+- In-app notification center
 
 ### Order Status Notifications
 
 You'll receive notifications when:
-- Order is confirmed
+- Order is confirmed by admin
 - Order is being prepared
 - Order is out for delivery
-- Order is delivered
+- Order is delivered (includes delivery photo)
+- Order is cancelled (if applicable)
 
 ### Viewing Notifications
 
@@ -290,8 +473,27 @@ You'll receive notifications when:
    - Notification title
    - Message
    - Timestamp
+   - Order ID (if applicable)
 3. Tap any notification to view related order details
 4. Notifications are marked as read automatically
+
+### Notification Settings
+
+**Device Settings**:
+- Ensure notifications are enabled for Kirana app
+- Check device notification settings
+- Allow sound and vibration
+- Enable banner/pop-up notifications
+
+**App Settings**:
+- Enable/disable notification sounds
+- Manage notification preferences
+- Control what notifications you receive
+
+**Troubleshooting**:
+- Not receiving notifications? Check device settings
+- No sound? Check app sound settings and device volume
+- Delayed notifications? Check internet connection
 
 ---
 
@@ -313,6 +515,15 @@ A: Currently, phone numbers cannot be changed. Contact support if you need assis
 **Q: How do I know if a product is in stock?**
 A: Stock status is shown on each product card. "In Stock" means available, "Low Stock" means limited quantity, "Out of Stock" means unavailable.
 
+**Q: What does the discount percentage mean?**
+A: It shows how much you save. For example, "20% OFF" means the product is 20% cheaper than the regular price.
+
+**Q: What is minimum order quantity?**
+A: Some products require you to order a minimum amount. For example, "Min: 2 kg" means you must order at least 2 kg of that product.
+
+**Q: Can I order less than the minimum quantity?**
+A: No, minimum quantities are set for operational reasons. You must order at least the minimum amount shown.
+
 **Q: Can I modify my order after placing it?**
 A: No, orders cannot be modified. You can cancel and place a new order if the status is Pending or Confirmed.
 
@@ -320,10 +531,28 @@ A: No, orders cannot be modified. You can cancel and place a new order if the st
 A: Currently, only Cash on Delivery (COD) is available. Pay when you receive your order.
 
 **Q: Is there a delivery fee?**
-A: Delivery is currently FREE for all orders.
+A: Delivery is ₹20 for orders below ₹200. Orders of ₹200 or more get FREE delivery!
+
+**Q: How can I get free delivery?**
+A: Add items worth ₹200 or more to your cart. The delivery charge will automatically become ₹0.
+
+**Q: What is the maximum cart value?**
+A: The maximum cart value is ₹3000. If your cart exceeds this, you'll need to remove some items to proceed.
+
+**Q: What does "Delivery might be delayed" mean?**
+A: This warning appears when there are many pending orders. Your order will still be accepted, but delivery might take longer than usual.
+
+**Q: Why can't I place an order?**
+A: If you see "Order capacity full", it means the store is at maximum capacity. Please try again after some time.
 
 **Q: How long does delivery take?**
 A: Delivery times vary based on your location and order volume. You'll receive status updates via notifications.
+
+**Q: Can I see proof of my delivery?**
+A: Yes! For delivered orders, you can view the delivery photo and location in your order details.
+
+**Q: Can I return items?**
+A: No, we have a no-return policy. Products are verified at delivery time. Please check items carefully before accepting delivery.
 
 ### Cart & Checkout
 
@@ -335,6 +564,29 @@ A: Currently, there's no "save for later" feature. Items remain in your cart unt
 
 **Q: What happens if an item goes out of stock while it's in my cart?**
 A: You'll be notified during checkout if any items are out of stock. You can remove them and proceed with remaining items.
+
+**Q: Why can't I checkout?**
+A: Check for these issues: items below minimum quantity, cart exceeds ₹3000, order capacity is full, or missing delivery address.
+
+**Q: How do I apply a discount?**
+A: Discounts are applied automatically. If a product has a discount, you'll see the discounted price and the discount is applied in your cart.
+
+### Delivery Feedback
+
+**Q: How do I add feedback after delivery?**
+A: Open your delivered order, scroll to "Delivery Feedback" section, tap "Add Feedback", type your comments (up to 500 characters), and save.
+
+**Q: Can I edit my feedback?**
+A: Yes, you can edit feedback for 24 hours after delivery. After that, it cannot be changed.
+
+**Q: Who can see my feedback?**
+A: Only admin users can see your feedback. It's used to improve service quality and is not publicly visible.
+
+**Q: Is feedback mandatory?**
+A: No, feedback is optional but encouraged. It helps us improve our service.
+
+**Q: What should I include in feedback?**
+A: Share your delivery experience, product quality, delivery person behavior, any issues, or positive comments. Keep it constructive.
 
 ### Addresses
 
@@ -374,10 +626,17 @@ If you encounter any issues not covered in this guide:
 
 ✅ **Keep your app updated** to the latest version
 ✅ **Enable notifications** to receive order updates
+✅ **Enable notification sounds** for important alerts
 ✅ **Save multiple addresses** for convenience
 ✅ **Check stock availability** before adding large quantities
+✅ **Watch for discounts** - save money on special offers
+✅ **Check minimum quantities** before adding to cart
+✅ **Add ₹200+ for free delivery** - save on delivery charges
 ✅ **Review your cart** before checkout
 ✅ **Note your Order ID** for reference
+✅ **Check items at delivery** - no returns policy
+✅ **Provide feedback** after delivery - help us improve
+✅ **View delivery proof** for your records
 
 ---
 

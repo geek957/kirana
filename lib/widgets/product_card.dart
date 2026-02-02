@@ -12,6 +12,8 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOutOfStock = product.stockQuantity <= 0;
     final isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10;
+    final hasDiscount = product.discountPrice != null;
+    final discountPercentage = product.getDiscountPercentage();
 
     return Card(
       elevation: 2,
@@ -71,6 +73,30 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  // Discount badge
+                  if (hasDiscount && !isOutOfStock)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          discountPercentage,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                   // Low stock badge
                   if (isLowStock)
                     Positioned(
@@ -119,61 +145,68 @@ class ProductCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
 
+                    // Category label
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        product.category,
+                        style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+
                     // Price and unit
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '₹${product.price.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
+                        if (hasDiscount)
+                          // Horizontal price layout for discount
+                          Row(
+                            children: [
+                              // Original price with strikethrough
+                              Text(
+                                '₹${product.price.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              // Discount price
+                              Text(
+                                '₹${product.discountPrice!.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[700],
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          // Regular price
+                          Text(
+                            '₹${product.price.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
-                        ),
                         Text(
                           product.unitSize,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Stock status
-                    Row(
-                      children: [
-                        Icon(
-                          isOutOfStock
-                              ? Icons.cancel
-                              : isLowStock
-                              ? Icons.warning
-                              : Icons.check_circle,
-                          size: 14,
-                          color: isOutOfStock
-                              ? Colors.red
-                              : isLowStock
-                              ? Colors.orange
-                              : Colors.green,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            isOutOfStock
-                                ? 'Out of Stock'
-                                : isLowStock
-                                ? 'Low Stock'
-                                : 'In Stock',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isOutOfStock
-                                  ? Colors.red
-                                  : isLowStock
-                                  ? Colors.orange
-                                  : Colors.green,
-                            ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

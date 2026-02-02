@@ -16,10 +16,19 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  int _quantity = 1;
+  late int _quantity;
+  bool _isAddingToCart = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize quantity to minimum order quantity
+    _quantity = widget.product.minimumOrderQuantity;
+  }
 
   void _incrementQuantity() {
-    if (_quantity < widget.product.stockQuantity) {
+    final maxAllowed = widget.product.getMaxAllowedQuantity();
+    if (_quantity < maxAllowed) {
       setState(() {
         _quantity++;
       });
@@ -27,25 +36,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _decrementQuantity() {
-    if (_quantity > 1) {
+    // Don't allow quantity to go below minimum order quantity
+    if (_quantity > widget.product.minimumOrderQuantity) {
       setState(() {
         _quantity--;
       });
     }
   }
 
+  bool get _isQuantityValid {
+    return widget.product.isQuantityValid(_quantity);
+  }
+
   void _addToCart() async {
+    // Prevent multiple rapid clicks
+    if (_isAddingToCart) return;
+
+    setState(() => _isAddingToCart = true);
+
     final authProvider = context.read<AuthProvider>();
     final cartProvider = context.read<CartProvider>();
 
     if (authProvider.firebaseUser == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please log in to add items to cart'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        // Silent - no SnackBar for not logged in
+        setState(() => _isAddingToCart = false);
       }
       return;
     }
@@ -56,30 +71,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         widget.product.id,
         _quantity,
       );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Added ${widget.product.name} (x$_quantity) to cart'),
-            backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: 'View Cart',
-              textColor: Colors.white,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
-                );
-              },
-            ),
-          ),
-        );
-      }
+      // Silent success - no SnackBar
     } catch (e) {
+      // Silent error - no SnackBar
+      print('Error adding to cart: $e');
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-        );
+        setState(() => _isAddingToCart = false);
       }
     }
   }
@@ -206,17 +204,42 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   const SizedBox(height: 8),
 
-                  // Price and unit
+                  // Price and unit with discount display
                   Row(
                     children: [
-                      Text(
-                        '₹${widget.product.price.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+                      // Show discount price if available
+                      if (widget.product.discountPrice != null) ...[
+                        // Original price with strikethrough
+                        Text(
+                          '₹${widget.product.price.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.grey[600],
+                            decoration: TextDecoration.lineThrough,
+                            decorationThickness: 2,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        // Discount price
+                        Text(
+                          '₹${widget.product.discountPrice!.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                      ] else ...[
+                        // Regular price (no discount)
+                        Text(
+                          '₹${widget.product.price.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 8),
                       Text(
                         'per ${widget.product.unitSize}',
@@ -224,6 +247,43 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ],
                   ),
+
+                  // Discount badge and savings
+                  if (widget.product.discountPrice != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        // Discount percentage badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            widget.product.getDiscountPercentage(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'You save ₹${(widget.product.price - widget.product.discountPrice!).toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
 
                   const SizedBox(height: 16),
 
@@ -284,6 +344,45 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
 
+                  // Order quantity limits display
+                  if (widget.product.minimumOrderQuantity > 1 ||
+                      widget.product.maximumOrderQuantity != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            size: 20,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              widget.product.maximumOrderQuantity != null
+                                  ? 'Order between ${widget.product.minimumOrderQuantity}-${widget.product.maximumOrderQuantity} ${widget.product.unitSize}'
+                                  : 'Minimum order: ${widget.product.minimumOrderQuantity} ${widget.product.unitSize}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 24),
 
                   // Description section
@@ -309,90 +408,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
-                  _buildDetailRow('Unit Size', widget.product.unitSize),
                   _buildDetailRow('Category', widget.product.category),
+                  _buildDetailRow('Unit Size', widget.product.unitSize),
                   _buildDetailRow(
                     'Stock',
                     '${widget.product.stockQuantity} ${widget.product.unitSize}',
                   ),
-
-                  const SizedBox(height: 32),
-
-                  // Quantity selector (only if in stock)
-                  if (!isOutOfStock) ...[
-                    const Text(
-                      'Quantity',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  if (widget.product.minimumOrderQuantity > 1)
+                    _buildDetailRow(
+                      'Min. Order',
+                      '${widget.product.minimumOrderQuantity} ${widget.product.unitSize}',
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        // Decrement button
-                        IconButton(
-                          onPressed: _quantity > 1 ? _decrementQuantity : null,
-                          icon: const Icon(Icons.remove_circle_outline),
-                          iconSize: 32,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-
-                        // Quantity display
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _quantity.toString(),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-
-                        // Increment button
-                        IconButton(
-                          onPressed: _quantity < widget.product.stockQuantity
-                              ? _incrementQuantity
-                              : null,
-                          icon: const Icon(Icons.add_circle_outline),
-                          iconSize: 32,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-
-                        const Spacer(),
-
-                        // Total price
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Total',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            Text(
-                              '₹${(widget.product.price * _quantity).toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                  if (widget.product.maximumOrderQuantity != null)
+                    _buildDetailRow(
+                      'Max. Order',
+                      '${widget.product.maximumOrderQuantity} ${widget.product.unitSize}',
                     ),
-                  ],
 
                   const SizedBox(height: 24),
                 ],
@@ -401,28 +432,212 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ],
         ),
       ),
-      // Add to cart button
+      // Fixed bottom panel with quantity selector and add to cart
       bottomNavigationBar: isOutOfStock
           ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton(
-                  onPressed: _addToCart,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+          : Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
                   ),
-                  child: Text(
-                    'Add to Cart - ₹${(widget.product.price * _quantity).toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ],
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Validation error message
+                      if (!_isQuantityValid) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _quantity < widget.product.minimumOrderQuantity
+                                      ? 'Min: ${widget.product.minimumOrderQuantity} ${widget.product.unitSize}'
+                                      : 'Max: ${widget.product.maximumOrderQuantity} ${widget.product.unitSize}',
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Quantity selector and total price
+                      Row(
+                        children: [
+                          // Quantity label and controls
+                          const Text(
+                            'Quantity:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Decrement button
+                          IconButton(
+                            onPressed:
+                                _quantity > widget.product.minimumOrderQuantity
+                                ? _decrementQuantity
+                                : null,
+                            icon: const Icon(Icons.remove_circle_outline),
+                            iconSize: 28,
+                            color: _quantity > widget.product.minimumOrderQuantity
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          // Quantity display
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: _isQuantityValid
+                                    ? Colors.grey[300]!
+                                    : Colors.red,
+                                width: _isQuantityValid ? 1 : 2,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              color: _isQuantityValid ? null : Colors.red[50],
+                            ),
+                            child: Text(
+                              _quantity.toString(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _isQuantityValid ? null : Colors.red,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          // Increment button
+                          IconButton(
+                            onPressed: _quantity < widget.product.getMaxAllowedQuantity()
+                                ? _incrementQuantity
+                                : null,
+                            icon: const Icon(Icons.add_circle_outline),
+                            iconSize: 28,
+                            color: _quantity < widget.product.getMaxAllowedQuantity()
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+
+                          const Spacer(),
+
+                          // Total price
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Total',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                '₹${(widget.product.getEffectivePrice() * _quantity).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: widget.product.discountPrice != null
+                                      ? Colors.green[700]
+                                      : Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              // Show savings if discount
+                              if (widget.product.discountPrice != null)
+                                Text(
+                                  'Save ₹${widget.product.calculateSavings(_quantity).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.green[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Add to Cart button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isQuantityValid && !_isAddingToCart ? _addToCart : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isQuantityValid && !_isAddingToCart
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isAddingToCart
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  _isQuantityValid
+                                      ? 'Add to Cart'
+                                      : _quantity < widget.product.minimumOrderQuantity
+                                          ? 'Min ${widget.product.minimumOrderQuantity} required'
+                                          : 'Max ${widget.product.maximumOrderQuantity} allowed',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

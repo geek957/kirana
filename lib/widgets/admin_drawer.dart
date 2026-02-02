@@ -65,9 +65,21 @@ class AdminDrawer extends StatelessWidget {
           ),
           _buildDrawerItem(
             context,
+            icon: Icons.category,
+            title: 'Category Management',
+            route: Routes.adminCategoryManagement,
+          ),
+          _buildDrawerItem(
+            context,
             icon: Icons.shopping_bag,
             title: 'Order Management',
             route: Routes.adminOrders,
+          ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.settings,
+            title: 'App Configuration',
+            route: Routes.adminAppConfig,
           ),
           const Divider(),
           ListTile(
@@ -77,7 +89,7 @@ class AdminDrawer extends StatelessWidget {
               // Capture navigator and scaffold context before any async operations
               final navigator = Navigator.of(context);
               final scaffoldContext = context;
-              
+
               // Close drawer first
               navigator.pop();
 
@@ -102,7 +114,10 @@ class AdminDrawer extends StatelessWidget {
 
               if (confirmed == true) {
                 await authProvider.logout();
-                navigator.pushNamedAndRemoveUntil(Routes.login, (route) => false);
+                navigator.pushNamedAndRemoveUntil(
+                  Routes.login,
+                  (route) => false,
+                );
               }
             },
           ),

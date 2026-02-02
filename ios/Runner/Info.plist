@@ -45,5 +45,14 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to capture delivery photos as proof of delivery</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to record the delivery location for order verification</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

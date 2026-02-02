@@ -48,3 +48,14 @@ app.*.map.json
 **/android/app/google-services.json
 **/ios/Runner/GoogleService-Info.plist
 **/macos/Runner/GoogleService-Info.plist
+
+# Firebase Admin SDK service account keys (NEVER commit these!)
+serviceAccountKey.json
+**/serviceAccountKey*.json
+scripts/serviceAccountKey*.json
+
+# Generated JSON templates from scripts
+scripts/default_app_config.json
+scripts/default_categories.json
+
+functions/node_modules/*

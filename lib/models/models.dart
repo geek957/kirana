@@ -8,3 +8,5 @@ export 'order_item.dart';
 export 'order.dart';
 export 'admin.dart';
 export 'notification.dart';
+export 'category.dart';
+export 'app_config.dart';

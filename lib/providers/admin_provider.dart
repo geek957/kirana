@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import '../models/order.dart';
 import '../services/admin_service.dart';
 import '../services/product_service.dart';
+import '../services/order_service.dart';
 
 class AdminProvider with ChangeNotifier {
   final AdminService _adminService = AdminService();
@@ -16,6 +18,7 @@ class AdminProvider with ChangeNotifier {
 
   // Order management
   List<Order> _allOrders = [];
+  int _pendingOrderCount = 0;
 
   // Inventory management
   List<Product> _allProducts = [];
@@ -31,6 +34,7 @@ class AdminProvider with ChangeNotifier {
   int get lowStockCount => _lowStockCount;
   List<Order> get recentOrders => _recentOrders;
   List<Order> get allOrders => _allOrders;
+  int get pendingOrderCount => _pendingOrderCount;
   List<Product> get allProducts => _allProducts;
   List<Product> get filteredProducts => _filteredProducts;
   List<String> get categories => _categories;
@@ -129,9 +133,13 @@ class AdminProvider with ChangeNotifier {
     required String name,
     required String description,
     required double price,
+    double? discountPrice,
     required String category,
+    required String categoryId,
     required String unitSize,
     required int stockQuantity,
+    int minimumOrderQuantity = 1,
+    int? maximumOrderQuantity,
     String? imageUrl,
   }) async {
     try {
@@ -139,14 +147,19 @@ class AdminProvider with ChangeNotifier {
         name: name,
         description: description,
         price: price,
+        discountPrice: discountPrice,
         category: category,
+        categoryId: categoryId,
         unitSize: unitSize,
         stockQuantity: stockQuantity,
+        minimumOrderQuantity: minimumOrderQuantity,
+        maximumOrderQuantity: maximumOrderQuantity,
         imageUrl: imageUrl,
       );
 
-      // Reload products after adding
+      // Reload products and dashboard after adding
       await loadAllProducts();
+      await loadDashboardData();
     } catch (e) {
       debugPrint('Error adding product: $e');
       rethrow;
@@ -159,9 +172,13 @@ class AdminProvider with ChangeNotifier {
     String? name,
     String? description,
     double? price,
+    double? discountPrice,
     String? category,
+    String? categoryId,
     String? unitSize,
     int? stockQuantity,
+    int? minimumOrderQuantity,
+    int? maximumOrderQuantity,
     String? imageUrl,
   }) async {
     try {
@@ -170,14 +187,19 @@ class AdminProvider with ChangeNotifier {
         name: name,
         description: description,
         price: price,
+        discountPrice: discountPrice,
         category: category,
+        categoryId: categoryId,
         unitSize: unitSize,
         stockQuantity: stockQuantity,
+        minimumOrderQuantity: minimumOrderQuantity,
+        maximumOrderQuantity: maximumOrderQuantity,
         imageUrl: imageUrl,
       );
 
-      // Reload products after updating
+      // Reload products and dashboard after updating
       await loadAllProducts();
+      await loadDashboardData();
     } catch (e) {
       debugPrint('Error updating product: $e');
       rethrow;
@@ -189,8 +211,9 @@ class AdminProvider with ChangeNotifier {
     try {
       await _adminService.deleteProduct(productId);
 
-      // Reload products after deleting
+      // Reload products and dashboard after deleting
       await loadAllProducts();
+      await loadDashboardData();
     } catch (e) {
       debugPrint('Error deleting product: $e');
       rethrow;
@@ -202,8 +225,9 @@ class AdminProvider with ChangeNotifier {
     try {
       await _adminService.updateProduct(productId: productId, isActive: true);
 
-      // Reload products after restoring
+      // Reload products and dashboard after restoring
       await loadAllProducts();
+      await loadDashboardData();
     } catch (e) {
       debugPrint('Error restoring product: $e');
       rethrow;
@@ -215,8 +239,9 @@ class AdminProvider with ChangeNotifier {
     try {
       await _adminService.updateStock(productId, newQuantity);
 
-      // Reload products after updating stock
+      // Reload products and dashboard after updating stock
       await loadAllProducts();
+      await loadDashboardData();
     } catch (e) {
       debugPrint('Error updating stock: $e');
       rethrow;
@@ -260,11 +285,26 @@ class AdminProvider with ChangeNotifier {
 
     try {
       _allOrders = await _adminService.getAllOrders(status: status);
+      // Also update pending order count
+      await loadPendingOrderCount();
     } catch (e) {
       debugPrint('Error loading all orders: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Loads pending order count
+  Future<void> loadPendingOrderCount() async {
+    try {
+      final pendingOrders = await _adminService.getAllOrders(
+        status: OrderStatus.pending,
+      );
+      _pendingOrderCount = pendingOrders.length;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading pending order count: $e');
     }
   }
 
@@ -276,6 +316,29 @@ class AdminProvider with ChangeNotifier {
       await loadAllOrders();
     } catch (e) {
       debugPrint('Error updating order status: $e');
+      rethrow;
+    }
+  }
+
+  /// Completes delivery with photo and location
+  Future<void> completeDelivery({
+    required String orderId,
+    required File deliveryPhoto,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final orderService = OrderService();
+      await orderService.completeDelivery(
+        orderId: orderId,
+        deliveryPhoto: deliveryPhoto,
+        latitude: latitude,
+        longitude: longitude,
+      );
+      // Reload orders after completion
+      await loadAllOrders();
+    } catch (e) {
+      debugPrint('Error completing delivery: $e');
       rethrow;
     }
   }
@@ -305,6 +368,7 @@ class AdminProvider with ChangeNotifier {
     _lowStockCount = 0;
     _recentOrders = [];
     _allOrders = [];
+    _pendingOrderCount = 0;
     _allProducts = [];
     _filteredProducts = [];
     _categories = [];

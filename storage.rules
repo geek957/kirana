@@ -1,6 +1,12 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null &&
+             firestore.get(/databases/(default)/documents/customers/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
     // Product images - public read, authenticated write
     // Matches paths like: products/productId/image.jpg
     match /products/{productId}/{imageFile} {
@@ -8,6 +14,22 @@ service firebase.storage {
       allow write: if request.auth != null; // Only authenticated users can upload
     }
     
-    // Additional storage paths can be added here as needed
+    // Delivery photos - admin write, authenticated read
+    // Matches paths like: delivery_photos/orderId_timestamp.jpg
+    // Requirements: 2.3.1-2.3.8
+    match /delivery_photos/{photoFile} {
+      // Authenticated users can read delivery photos
+      allow read: if request.auth != null;
+      
+      // Only admins can upload delivery photos
+      allow write: if request.auth != null && isAdmin()
+        // Validate file size: maximum 5MB
+        && request.resource.size < 5 * 1024 * 1024
+        // Validate file type: images only (jpeg, jpg, png, gif, webp)
+        && request.resource.contentType.matches('image/.*');
+      
+      // Prevent deletion of delivery photos (immutable proof of delivery)
+      allow delete: if false;
+    }
   }
 }

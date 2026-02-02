@@ -4,6 +4,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/category_provider.dart';
 import '../../widgets/customer_bottom_nav.dart';
 import '../../utils/routes.dart';
 import '../../widgets/product_card.dart';
@@ -22,8 +23,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize product provider
+    // Initialize providers
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Initialize category provider
+      context.read<CategoryProvider>().loadCategories();
+      context.read<CategoryProvider>().startListening();
+
+      // Initialize product provider
       context.read<ProductProvider>().initialize();
 
       // Initialize cart provider if user is logged in
@@ -189,9 +195,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // Category chips
-          Consumer<ProductProvider>(
-            builder: (context, provider, child) {
-              if (provider.categories.isEmpty) {
+          Consumer<CategoryProvider>(
+            builder: (context, categoryProvider, child) {
+              if (categoryProvider.categories.isEmpty) {
                 return const SizedBox.shrink();
               }
 
@@ -206,24 +212,71 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
                         label: const Text('All'),
-                        selected: provider.selectedCategory == null,
+                        selected: categoryProvider.selectedCategory == null,
                         onSelected: (selected) {
                           if (selected) {
-                            provider.setCategory(null);
+                            categoryProvider.selectCategory(null);
+                            context.read<ProductProvider>().setCategory(null);
                           }
                         },
+                        selectedColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.2),
+                        checkmarkColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     // Category chips
-                    ...provider.categories.map((category) {
+                    ...categoryProvider.categories.map((category) {
+                      final isSelected =
+                          categoryProvider.selectedCategory?.id == category.id;
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
-                          label: Text(category),
-                          selected: provider.selectedCategory == category,
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(category.name),
+                              if (category.productCount > 0) ...[
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.grey[400],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${category.productCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          selected: isSelected,
                           onSelected: (selected) {
-                            provider.setCategory(selected ? category : null);
+                            if (selected) {
+                              categoryProvider.selectCategory(category);
+                              context.read<ProductProvider>().setCategory(
+                                category.name,
+                              );
+                            } else {
+                              categoryProvider.selectCategory(null);
+                              context.read<ProductProvider>().setCategory(null);
+                            }
                           },
+                          selectedColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.2),
+                          checkmarkColor: Theme.of(context).colorScheme.primary,
                         ),
                       );
                     }),

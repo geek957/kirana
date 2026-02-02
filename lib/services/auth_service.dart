@@ -267,4 +267,16 @@ class AuthService {
     final expiryTime = oldestRequest.add(otpRateLimitWindow);
     return expiryTime.difference(now);
   }
+
+  // Save FCM token for push notifications
+  Future<void> saveFCMToken(String userId, String fcmToken) async {
+    try {
+      await _firestore.collection('customers').doc(userId).update({
+        'fcmToken': fcmToken,
+        'fcmTokenUpdatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw Exception('Failed to save FCM token: $e');
+    }
+  }
 }

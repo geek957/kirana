@@ -251,11 +251,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ],
             ),
-            trailing: Text(
-              '₹${order.totalAmount.toStringAsFixed(2)}',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${(order.totalAmount + order.deliveryCharge).toStringAsFixed(2)}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                if (order.deliveryCharge > 0)
+                  Text(
+                    '+₹${order.deliveryCharge.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                      fontSize: 10,
+                    ),
+                  ),
+              ],
             ),
             onTap: () {
               Navigator.of(
