@@ -227,9 +227,9 @@ class CategoryService {
   }
 
   /// Delete a category
-  /// Validates that category has no products assigned
+  /// Validates that category has no active products assigned
   /// Throws CategoryNotFoundException if category doesn't exist
-  /// Throws CategoryHasProductsException if category has products
+  /// Throws CategoryHasProductsException if category has active products
   /// Clears cache to ensure fresh data on next fetch
   Future<void> deleteCategory(String id) async {
     try {
@@ -239,9 +239,15 @@ class CategoryService {
         throw CategoryNotFoundException();
       }
 
-      // Validate no products are assigned
-      final productCount = await getProductCount(id);
-      if (productCount > 0) {
+      // Validate no active products are assigned (inactive products are ok)
+      final activeProductCount = await _firestore
+          .collection('products')
+          .where('categoryId', isEqualTo: id)
+          .where('isActive', isEqualTo: true)
+          .count()
+          .get();
+
+      if ((activeProductCount.count ?? 0) > 0) {
         throw CategoryHasProductsException();
       }
 

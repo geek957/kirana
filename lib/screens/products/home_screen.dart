@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../widgets/customer_bottom_nav.dart';
+import '../../widgets/floating_cart_preview.dart';
 import '../../utils/routes.dart';
 import '../../widgets/product_card.dart';
 
@@ -19,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -53,7 +55,108 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _focusSearch() {
+    // Scroll to top to show search bar
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+    // Focus search field
+    _searchFocusNode.requestFocus();
+  }
+
+  Future<void> _handleAddToCart(String productId) async {
+    final authProvider = context.read<AuthProvider>();
+    final cartProvider = context.read<CartProvider>();
+
+    if (authProvider.firebaseUser == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to add items to cart'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      // Add 1 quantity to cart (addToCart handles increment automatically)
+      await cartProvider.addToCart(
+        authProvider.firebaseUser!.uid,
+        productId,
+        1, // Always add 1, the service handles existing quantity
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add to cart: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRemoveFromCart(String productId) async {
+    final authProvider = context.read<AuthProvider>();
+    final cartProvider = context.read<CartProvider>();
+
+    if (authProvider.firebaseUser == null) {
+      return;
+    }
+
+    try {
+      final currentQuantity = _getCartQuantity(productId);
+      
+      if (currentQuantity > 1) {
+        // Reduce quantity by 1
+        await cartProvider.updateQuantity(
+          authProvider.firebaseUser!.uid,
+          productId,
+          currentQuantity - 1,
+        );
+      } else {
+        // Remove from cart
+        await cartProvider.removeFromCart(
+          authProvider.firebaseUser!.uid,
+          productId,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove from cart: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  int _getCartQuantity(String productId) {
+    final cartProvider = context.read<CartProvider>();
+    final cart = cartProvider.cart;
+    
+    if (cart == null) return 0;
+    
+    try {
+      final item = cart.items.firstWhere(
+        (item) => item.productId == productId,
+      );
+      return item.quantity;
+    } catch (e) {
+      // Item not found in cart
+      return 0;
+    }
   }
 
   void _onScroll() {
@@ -80,8 +183,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.notifications),
-                    onPressed: () {
-                      Navigator.pushNamed(context, Routes.notifications);
+                    onPressed: () async {
+                      // Mark all notifications as read BEFORE navigating
+                      await notificationProvider.markAllAsRead();
+                      
+                      // Then navigate to notifications screen
+                      if (context.mounted) {
+                        Navigator.pushNamed(context, Routes.notifications);
+                      }
                     },
                   ),
                   if (unreadCount > 0)
@@ -170,6 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               decoration: InputDecoration(
                 hintText: 'Search products...',
                 prefixIcon: const Icon(Icons.search),
@@ -383,13 +493,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
 
                       final product = provider.products[index];
-                      return ProductCard(
-                        product: product,
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            Routes.productDetail,
-                            arguments: product,
+                      return Consumer<CartProvider>(
+                        builder: (context, cartProvider, _) {
+                          final cartQuantity = _getCartQuantity(product.id);
+                          
+                          return ProductCard(
+                            product: product,
+                            cartQuantity: cartQuantity,
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                Routes.productDetail,
+                                arguments: product,
+                              );
+                            },
+                            onAddToCart: () => _handleAddToCart(product.id),
+                            onRemoveFromCart: () => _handleRemoveFromCart(product.id),
                           );
                         },
                       );
@@ -401,7 +520,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const CustomerBottomNav(currentIndex: 0),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Floating cart preview
+          const FloatingCartPreview(),
+          // Bottom navigation
+          CustomerBottomNav(
+            currentIndex: 0,
+            onSearchTap: _focusSearch,
+          ),
+        ],
+      ),
     );
   }
 }

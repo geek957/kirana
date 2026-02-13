@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:uuid/uuid.dart';
 import '../models/product.dart';
 import '../models/order.dart';
 import '../models/notification.dart';
+import '../models/admin.dart';
 import 'product_service.dart';
 import 'audit_service.dart';
 import 'authorization_service.dart';
@@ -20,6 +22,66 @@ class AdminService {
   /// Set the current admin ID for audit logging
   void setCurrentAdminId(String adminId) {
     _currentAdminId = adminId;
+  }
+
+  /// Register admin FCM token for push notifications
+  /// Should be called when admin logs in
+  Future<void> registerAdminFCMToken(String adminId) async {
+    try {
+      // Get FCM token from device
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      
+      if (fcmToken == null) {
+        print('⚠️ Failed to get FCM token for admin: $adminId');
+        return;
+      }
+
+      // Update admin document with FCM token
+      await _firestore.collection('admins').doc(adminId).update({
+        'fcmToken': fcmToken,
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Admin FCM token registered: $adminId');
+    } catch (e) {
+      print('❌ Failed to register admin FCM token: $e');
+      // Don't throw - notification registration shouldn't block login
+    }
+  }
+
+  /// Remove admin FCM token
+  /// Should be called when admin logs out
+  Future<void> removeAdminFCMToken(String adminId) async {
+    try {
+      // Remove FCM token from admin document
+      await _firestore.collection('admins').doc(adminId).update({
+        'fcmToken': FieldValue.delete(),
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Admin FCM token removed: $adminId');
+    } catch (e) {
+      print('❌ Failed to remove admin FCM token: $e');
+      // Don't throw - token removal shouldn't block logout
+    }
+  }
+
+  /// Get admin by ID
+  Future<Admin?> getAdmin(String adminId) async {
+    try {
+      final adminDoc = await _firestore
+          .collection('admins')
+          .doc(adminId)
+          .get();
+
+      if (!adminDoc.exists) {
+        return null;
+      }
+
+      return Admin.fromJson(adminDoc.data()!);
+    } catch (e) {
+      throw Exception('Failed to get admin: $e');
+    }
   }
 
   /// Adds a new product to the inventory
@@ -88,10 +150,25 @@ class AdminService {
         updatedAt: now,
       );
 
-      await _firestore
-          .collection(_productsCollection)
-          .doc(productId)
-          .set(product.toJson());
+      // Use batch to create product and update category count atomically
+      final batch = _firestore.batch();
+      
+      // Create product
+      batch.set(
+        _firestore.collection(_productsCollection).doc(productId),
+        product.toJson(),
+      );
+      
+      // Increment category product count
+      batch.update(
+        _firestore.collection('categories').doc(categoryId),
+        {
+          'productCount': FieldValue.increment(1),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+      
+      await batch.commit();
 
       // Log product creation
       if (_currentAdminId != null) {
@@ -109,6 +186,7 @@ class AdminService {
   }
 
   /// Updates an existing product
+  /// If categoryId changes, updates product counts for both old and new categories
   Future<void> updateProduct({
     required String productId,
     String? name,
@@ -159,6 +237,19 @@ class AdminService {
     }
 
     try {
+      // Get current product data to check for category changes
+      final productDoc = await _firestore
+          .collection(_productsCollection)
+          .doc(productId)
+          .get();
+
+      if (!productDoc.exists) {
+        throw Exception('Product not found');
+      }
+
+      final currentData = productDoc.data()!;
+      final currentCategoryId = currentData['categoryId'] as String?;
+
       final updateData = <String, dynamic>{
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -184,27 +275,51 @@ class AdminService {
 
       // Regenerate search keywords if name or category changed
       if (name != null || category != null) {
-        final productDoc = await _firestore
-            .collection(_productsCollection)
-            .doc(productId)
-            .get();
+        final finalName = name ?? currentData['name'] as String;
+        final finalCategory = category ?? currentData['category'] as String;
 
-        if (productDoc.exists) {
-          final currentData = productDoc.data()!;
-          final finalName = name ?? currentData['name'] as String;
-          final finalCategory = category ?? currentData['category'] as String;
-
-          updateData['searchKeywords'] = ProductService.generateSearchKeywords(
-            finalName,
-            finalCategory,
-          );
-        }
+        updateData['searchKeywords'] = ProductService.generateSearchKeywords(
+          finalName,
+          finalCategory,
+        );
       }
 
-      await _firestore
-          .collection(_productsCollection)
-          .doc(productId)
-          .update(updateData);
+      // Check if category changed and update counts atomically
+      if (categoryId != null && currentCategoryId != null && categoryId != currentCategoryId) {
+        final batch = _firestore.batch();
+
+        // Update product
+        batch.update(
+          _firestore.collection(_productsCollection).doc(productId),
+          updateData,
+        );
+
+        // Decrement old category count
+        batch.update(
+          _firestore.collection('categories').doc(currentCategoryId),
+          {
+            'productCount': FieldValue.increment(-1),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
+
+        // Increment new category count
+        batch.update(
+          _firestore.collection('categories').doc(categoryId),
+          {
+            'productCount': FieldValue.increment(1),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
+
+        await batch.commit();
+      } else {
+        // No category change, simple update
+        await _firestore
+            .collection(_productsCollection)
+            .doc(productId)
+            .update(updateData);
+      }
 
       // Log product update
       if (_currentAdminId != null) {
@@ -220,26 +335,50 @@ class AdminService {
   }
 
   /// Soft deletes a product by setting isActive to false
+  /// Also decrements the category product count
   Future<void> deleteProduct(String productId) async {
     // Verify user is admin
     await _authService.requireAdmin();
 
     try {
-      // Get product name for audit log
+      // Get product data for audit log and category update
       final productDoc = await _firestore
           .collection(_productsCollection)
           .doc(productId)
           .get();
 
-      String productName = 'Unknown';
-      if (productDoc.exists) {
-        productName = productDoc.data()?['name'] as String? ?? 'Unknown';
+      if (!productDoc.exists) {
+        throw Exception('Product not found');
       }
 
-      await _firestore.collection(_productsCollection).doc(productId).update({
-        'isActive': false,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      final productData = productDoc.data()!;
+      final productName = productData['name'] as String? ?? 'Unknown';
+      final categoryId = productData['categoryId'] as String?;
+
+      // Use batch to update product and category count atomically
+      final batch = _firestore.batch();
+
+      // Soft delete product
+      batch.update(
+        _firestore.collection(_productsCollection).doc(productId),
+        {
+          'isActive': false,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      // Decrement category product count if category exists
+      if (categoryId != null) {
+        batch.update(
+          _firestore.collection('categories').doc(categoryId),
+          {
+            'productCount': FieldValue.increment(-1),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
+      }
+
+      await batch.commit();
 
       // Log product deletion
       if (_currentAdminId != null) {

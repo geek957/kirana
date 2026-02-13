@@ -4,12 +4,14 @@ class Admin {
   final String id;
   final String username;
   final String phoneNumber;
+  final String? fcmToken;  // Firebase Cloud Messaging token for push notifications
   final DateTime createdAt;
 
   Admin({
     required this.id,
     required this.username,
     required this.phoneNumber,
+    this.fcmToken,
     required this.createdAt,
   });
 
@@ -18,6 +20,7 @@ class Admin {
       'id': id,
       'username': username,
       'phoneNumber': phoneNumber,
+      if (fcmToken != null) 'fcmToken': fcmToken,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -38,6 +41,7 @@ class Admin {
       id: json['id'] as String,
       username: json['username'] as String,
       phoneNumber: json['phoneNumber'] as String,
+      fcmToken: json['fcmToken'] as String?,
       createdAt: _parseDateTime(json['createdAt']),
     );
   }
@@ -46,12 +50,14 @@ class Admin {
     String? id,
     String? username,
     String? phoneNumber,
+    String? fcmToken,
     DateTime? createdAt,
   }) {
     return Admin(
       id: id ?? this.id,
       username: username ?? this.username,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      fcmToken: fcmToken ?? this.fcmToken,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -63,11 +69,12 @@ class Admin {
         other.id == id &&
         other.username == username &&
         other.phoneNumber == phoneNumber &&
+        other.fcmToken == fcmToken &&
         other.createdAt == createdAt;
   }
 
   @override
   int get hashCode {
-    return Object.hash(id, username, phoneNumber, createdAt);
+    return Object.hash(id, username, phoneNumber, fcmToken, createdAt);
   }
 }

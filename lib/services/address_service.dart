@@ -15,12 +15,13 @@ class AddressService {
       // Verify user can add address for this customer
       await _authService.requireCustomerDataAccess(address.customerId);
 
-      // Encrypt sensitive fields before storage
+      // Encrypt sensitive fields before storage with user-specific key
       final encryptedFullAddress = await _encryptionService.encryptAddress(
         address.fullAddress,
+        address.customerId,
       );
       final encryptedContactNumber = await _encryptionService
-          .encryptPhoneNumber(address.contactNumber);
+          .encryptPhoneNumber(address.contactNumber, address.customerId);
 
       final encryptedAddress = address.copyWith(
         fullAddress: encryptedFullAddress,
@@ -51,19 +52,26 @@ class AddressService {
 
       final addresses = <Address>[];
       for (var doc in snapshot.docs) {
-        final address = Address.fromJson(doc.data());
-        // Decrypt sensitive fields
-        final decryptedFullAddress = await _encryptionService.decryptAddress(
-          address.fullAddress,
-        );
-        final decryptedContactNumber = await _encryptionService
-            .decryptPhoneNumber(address.contactNumber);
-        addresses.add(
-          address.copyWith(
-            fullAddress: decryptedFullAddress,
-            contactNumber: decryptedContactNumber,
-          ),
-        );
+        try {
+          final address = Address.fromJson(doc.data());
+          // Decrypt sensitive fields with user-specific key
+          final decryptedFullAddress = await _encryptionService.decryptAddressSafe(
+            address.fullAddress,
+            customerId,
+          );
+          final decryptedContactNumber = await _encryptionService
+              .decryptPhoneNumberSafe(address.contactNumber, customerId);
+          addresses.add(
+            address.copyWith(
+              fullAddress: decryptedFullAddress,
+              contactNumber: decryptedContactNumber,
+            ),
+          );
+        } catch (addressError) {
+          // Log but skip problematic addresses instead of failing completely
+          print('⚠️ Error processing address ${doc.id}: $addressError');
+          continue;
+        }
       }
 
       return addresses;
@@ -85,12 +93,13 @@ class AddressService {
       }
 
       final address = Address.fromJson(doc.data() as Map<String, dynamic>);
-      // Decrypt sensitive fields
-      final decryptedFullAddress = await _encryptionService.decryptAddress(
+      // Decrypt sensitive fields with user-specific key
+      final decryptedFullAddress = await _encryptionService.decryptAddressSafe(
         address.fullAddress,
+        address.customerId,
       );
       final decryptedContactNumber = await _encryptionService
-          .decryptPhoneNumber(address.contactNumber);
+          .decryptPhoneNumberSafe(address.contactNumber, address.customerId);
 
       return address.copyWith(
         fullAddress: decryptedFullAddress,
@@ -104,12 +113,13 @@ class AddressService {
   /// Update an existing address
   Future<void> updateAddress(String addressId, Address address) async {
     try {
-      // Encrypt sensitive fields before storage
+      // Encrypt sensitive fields before storage with user-specific key
       final encryptedFullAddress = await _encryptionService.encryptAddress(
         address.fullAddress,
+        address.customerId,
       );
       final encryptedContactNumber = await _encryptionService
-          .encryptPhoneNumber(address.contactNumber);
+          .encryptPhoneNumber(address.contactNumber, address.customerId);
 
       final encryptedAddress = address.copyWith(
         fullAddress: encryptedFullAddress,
@@ -195,12 +205,13 @@ class AddressService {
       }
 
       final address = Address.fromJson(snapshot.docs.first.data());
-      // Decrypt sensitive fields
-      final decryptedFullAddress = await _encryptionService.decryptAddress(
+      // Decrypt sensitive fields with user-specific key
+      final decryptedFullAddress = await _encryptionService.decryptAddressSafe(
         address.fullAddress,
+        customerId,
       );
       final decryptedContactNumber = await _encryptionService
-          .decryptPhoneNumber(address.contactNumber);
+          .decryptPhoneNumberSafe(address.contactNumber, customerId);
 
       return address.copyWith(
         fullAddress: decryptedFullAddress,
@@ -221,18 +232,24 @@ class AddressService {
         .asyncMap((snapshot) async {
           final addresses = <Address>[];
           for (var doc in snapshot.docs) {
-            final address = Address.fromJson(doc.data());
-            // Decrypt sensitive fields
-            final decryptedFullAddress = await _encryptionService
-                .decryptAddress(address.fullAddress);
-            final decryptedContactNumber = await _encryptionService
-                .decryptPhoneNumber(address.contactNumber);
-            addresses.add(
-              address.copyWith(
-                fullAddress: decryptedFullAddress,
-                contactNumber: decryptedContactNumber,
-              ),
-            );
+            try {
+              final address = Address.fromJson(doc.data());
+              // Decrypt sensitive fields with user-specific key
+              final decryptedFullAddress = await _encryptionService
+                  .decryptAddressSafe(address.fullAddress, customerId);
+              final decryptedContactNumber = await _encryptionService
+                  .decryptPhoneNumberSafe(address.contactNumber, customerId);
+              addresses.add(
+                address.copyWith(
+                  fullAddress: decryptedFullAddress,
+                  contactNumber: decryptedContactNumber,
+                ),
+              );
+            } catch (addressError) {
+              // Log but skip problematic addresses instead of failing completely
+              print('⚠️ Error processing address ${doc.id} in stream: $addressError');
+              continue;
+            }
           }
           return addresses;
         });

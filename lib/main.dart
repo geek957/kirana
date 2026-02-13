@@ -35,9 +35,6 @@ void main() async {
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
 
-  // Initialize encryption service
-  await EncryptionService().initialize();
-
   // Initialize Firebase Cloud Messaging
   await NotificationService().initializeFCM();
 

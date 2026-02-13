@@ -218,3 +218,175 @@ export const sendBulkNotification = functions.https.onCall(
     }
   }
 );
+
+/**
+ * Cloud Function to send push notifications to all admins when a new order is created
+ * Triggers on order document creation in Firestore
+ */
+export const sendNewOrderNotificationToAdmins = functions.firestore
+  .document('orders/{orderId}')
+  .onCreate(async (snapshot, context) => {
+    try {
+      const orderId = context.params.orderId;
+      const orderData = snapshot.data();
+
+      const customerName = orderData.customerName || 'Unknown Customer';
+      const totalAmount = orderData.totalAmount || 0;
+      const itemCount = orderData.items?.length || 0;
+
+      console.log(`New order created: ${orderId} by ${customerName}`);
+
+      // Get all admin FCM tokens from customers collection
+      const adminsSnapshot = await admin
+        .firestore()
+        .collection('customers')
+        .where('isAdmin', '==', true)
+        .get();
+
+      const tokens: string[] = [];
+      adminsSnapshot.docs.forEach((doc) => {
+        const fcmToken = doc.data().fcmToken;
+        if (fcmToken) {
+          tokens.push(fcmToken);
+        }
+      });
+
+      if (tokens.length === 0) {
+        console.log('No admin FCM tokens found');
+        return null;
+      }
+
+      console.log(`Sending new order notification to ${tokens.length} admin(s)`);
+
+      // Send push notification to all admins
+      const message = {
+        notification: {
+          title: '🛒 New Order Received!',
+          body: `Order #${orderId} from ${customerName}. ${itemCount} items, Total: ₹${totalAmount.toFixed(2)}`,
+        },
+        data: {
+          orderId: orderId,
+          type: 'new_order',
+          customerId: orderData.customerId || '',
+          customerName: customerName,
+          totalAmount: totalAmount.toString(),
+          itemCount: itemCount.toString(),
+          clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        android: {
+          priority: 'high' as const,
+          notification: {
+            channelId: 'admin_order_updates',
+            sound: 'default',
+            priority: 'high' as const,
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+              badge: 1,
+            },
+          },
+        },
+        tokens: tokens,
+      };
+
+      const response = await admin.messaging().sendEachForMulticast(message);
+      console.log(
+        `New order notification sent. Success: ${response.successCount}, Failure: ${response.failureCount}`
+      );
+
+      return null;
+    } catch (error) {
+      console.error('Error sending new order notification to admins:', error);
+      return null;
+    }
+  });
+
+/**
+ * Cloud Function to send push notifications to all admins when an order is delivered
+ * Triggers on order document update when status changes to 'delivered'
+ */
+export const sendDeliveredNotificationToAdmins = functions.firestore
+  .document('orders/{orderId}')
+  .onUpdate(async (change, context) => {
+    try {
+      const orderId = context.params.orderId;
+      const beforeData = change.before.data();
+      const afterData = change.after.data();
+
+      // Check if status changed to delivered
+      if (beforeData.status !== 'delivered' && afterData.status === 'delivered') {
+        const customerName = afterData.customerName || 'Unknown Customer';
+        const totalAmount = afterData.totalAmount || 0;
+
+        console.log(`Order delivered: ${orderId} for ${customerName}`);
+
+        // Get all admin FCM tokens from customers collection
+        const adminsSnapshot = await admin
+          .firestore()
+          .collection('customers')
+          .where('isAdmin', '==', true)
+          .get();
+
+        const tokens: string[] = [];
+        adminsSnapshot.docs.forEach((doc) => {
+          const fcmToken = doc.data().fcmToken;
+          if (fcmToken) {
+            tokens.push(fcmToken);
+          }
+        });
+
+        if (tokens.length === 0) {
+          console.log('No admin FCM tokens found');
+          return null;
+        }
+
+        console.log(`Sending delivered notification to ${tokens.length} admin(s)`);
+
+        // Send push notification to all admins
+        const message = {
+          notification: {
+            title: '✅ Order Delivered',
+            body: `Order #${orderId} has been successfully delivered to ${customerName}. Amount: ₹${totalAmount.toFixed(2)}`,
+          },
+          data: {
+            orderId: orderId,
+            type: 'order_delivered',
+            customerId: afterData.customerId || '',
+            customerName: customerName,
+            totalAmount: totalAmount.toString(),
+            clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+          },
+          android: {
+            priority: 'high' as const,
+            notification: {
+              channelId: 'admin_order_updates',
+              sound: 'default',
+              priority: 'high' as const,
+            },
+          },
+          apns: {
+            payload: {
+              aps: {
+                sound: 'default',
+                badge: 1,
+              },
+            },
+          },
+          tokens: tokens,
+        };
+
+        const response = await admin.messaging().sendEachForMulticast(message);
+        console.log(
+          `Delivered notification sent. Success: ${response.successCount}, Failure: ${response.failureCount}`
+        );
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error sending delivered notification to admins:', error);
+      return null;
+    }
+  });

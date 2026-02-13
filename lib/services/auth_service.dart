@@ -36,6 +36,7 @@ class AuthService {
       // Encrypt phone number before storage
       final encryptedPhone = await _encryptionService.encryptPhoneNumber(
         phoneNumber,
+        userId,
       );
 
       final customer = Customer(
@@ -167,18 +168,15 @@ class AuthService {
       }
       final customer = Customer.fromJson(customerDoc.data()!);
 
-      // Try to decrypt phone number
-      // If decryption fails (different device/key), use phone number as-is
+      // Try to decrypt phone number with user-based key
       try {
-        final decryptedPhone = await _encryptionService.decryptPhoneNumber(
+        final decryptedPhone = await _encryptionService.decryptPhoneNumberSafe(
           customer.phoneNumber,
+          userId,
         );
         return customer.copyWith(phoneNumber: decryptedPhone);
       } catch (decryptError) {
-        // Decryption failed - phone might be plain text or encrypted with different key
-        // This can happen when:
-        // 1. User was created manually in Firebase Console (plain text)
-        // 2. User logging in on different device (different encryption key)
+        // Decryption failed - phone might be plain text or encrypted with old device-based key
         print('⚠️ Failed to decrypt phone number, using as-is: $decryptError');
         return customer; // Return with phone number as stored
       }

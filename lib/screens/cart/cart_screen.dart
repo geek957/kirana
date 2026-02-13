@@ -4,7 +4,6 @@ import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../models/cart_item.dart';
-import '../../widgets/customer_bottom_nav.dart';
 import '../../utils/routes.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -100,7 +99,6 @@ class _CartScreenState extends State<CartScreen> {
           );
         },
       ),
-      bottomNavigationBar: const CustomerBottomNav(currentIndex: 1),
     );
   }
 
@@ -400,6 +398,46 @@ class _CartScreenState extends State<CartScreen> {
                                   } catch (e) {
                                     // Silent error - no SnackBar
                                     print('Error updating quantity: $e');
+                                  }
+                                } else {
+                                  // When quantity is 1, show delete confirmation
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Remove Item'),
+                                      content: const Text(
+                                        'Remove this item from your cart?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(true),
+                                          child: const Text(
+                                            'Remove',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+
+                                  if (confirm == true) {
+                                    try {
+                                      await cartProvider.removeFromCart(
+                                        customerId,
+                                        item.productId,
+                                      );
+                                      // Re-validate cart after item removal
+                                      if (context.mounted) {
+                                        _validateCart();
+                                      }
+                                    } catch (e) {
+                                      // Silent error - no SnackBar
+                                      print('Error removing from cart: $e');
+                                    }
                                   }
                                 }
                               },
