@@ -38,11 +38,58 @@ class Product {
   }) : searchKeywords =
            searchKeywords ?? _generateSearchKeywords(name, category);
 
+  /// Generate search keywords with prefixes for partial matching
+  /// Supports searching by:
+  /// - Full name and category
+  /// - Individual words
+  /// - Prefixes (minimum 3 characters) for partial word matching
   static List<String> _generateSearchKeywords(String name, String category) {
     final keywords = <String>{};
-    keywords.add(name.toLowerCase());
-    keywords.add(category.toLowerCase());
-    keywords.addAll(name.toLowerCase().split(' '));
+    
+    // Helper function to normalize text
+    String normalize(String text) {
+      return text.toLowerCase()
+          .replaceAll(RegExp(r'[^\w\s]'), '') // Remove punctuation
+          .replaceAll(RegExp(r'\s+'), ' ')    // Normalize spaces
+          .trim();
+    }
+    
+    final cleanName = normalize(name);
+    final cleanCategory = normalize(category);
+    
+    // Add full name and category
+    keywords.add(cleanName);
+    keywords.add(cleanCategory);
+    
+    // Helper function to add word with its prefixes
+    void addWordWithPrefixes(String word) {
+      if (word.isEmpty) return;
+      
+      // Add the complete word
+      keywords.add(word);
+      
+      // Add prefixes for words >= 4 characters
+      // Start from 3 characters to enable partial matching
+      if (word.length >= 4) {
+        for (int i = 3; i < word.length; i++) {
+          keywords.add(word.substring(0, i));
+        }
+      }
+    }
+    
+    // Process each word in the name
+    final words = cleanName.split(' ');
+    for (var word in words) {
+      addWordWithPrefixes(word);
+    }
+    
+    // Optionally add category prefixes for longer categories
+    if (cleanCategory.length >= 4) {
+      for (int i = 3; i < cleanCategory.length; i++) {
+        keywords.add(cleanCategory.substring(0, i));
+      }
+    }
+    
     return keywords.toList();
   }
 

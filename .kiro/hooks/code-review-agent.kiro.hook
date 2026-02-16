@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "name": "Code Review Agent",
+  "description": "Performs comprehensive code review on Flutter/Dart files, checking for quality, performance, security, accessibility, and best practices",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Perform a comprehensive code review on the current file or recently changed files. Analyze for:\n\n1. Code Quality & Best Practices\n   - Flutter/Dart conventions and idioms\n   - Code organization and structure\n   - Naming conventions\n   - Code duplication\n\n2. Performance\n   - Unnecessary widget rebuilds\n   - Memory leaks or retention issues\n   - Inefficient operations\n   - Proper use of const constructors\n\n3. Security\n   - Data validation\n   - Secure storage practices\n   - API security\n   - Input sanitization\n\n4. Accessibility\n   - Semantic labels\n   - Screen reader support\n   - Color contrast\n   - Touch target sizes\n\n5. Error Handling\n   - Proper try-catch usage\n   - User feedback mechanisms\n   - Graceful degradation\n\n6. Architecture\n   - Separation of concerns\n   - Provider/state management patterns\n   - Service layer usage\n   - Model design\n\n7. Documentation\n   - Code comments where needed\n   - Function/class documentation\n   - Complex logic explanation\n\nProvide findings organized by severity (Critical, High, Medium, Low) with specific line references and actionable suggestions including code examples where helpful."
+  },
+  "workspaceFolderName": "kirana",
+  "shortName": "code-review-agent"
+}
