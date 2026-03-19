@@ -1,5 +1,5 @@
 {
-  "name": "kirana-initialization-scripts",
+  "name": "flash-initialization-scripts",
   "version": "1.0.0",
   "description": "Initialization scripts for Kirana Grocery App default data",
   "main": "initialize_default_data.js",

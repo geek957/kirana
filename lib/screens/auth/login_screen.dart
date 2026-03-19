@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Welcome Text
                 Text(
-                  'Welcome to Kirana',
+                  'Welcome to Flash',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

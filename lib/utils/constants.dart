@@ -1,7 +1,7 @@
-/// App-wide constants for the Kirana Grocery Application
+/// App-wide constants for the Flash Grocery Application
 class AppConstants {
   // App Information
-  static const String appName = 'Kirana';
+  static const String appName = 'Flash';
   static const String appVersion = '1.0.0';
 
   // Firebase Collections

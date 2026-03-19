@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
       ],
       child: MaterialApp(
-        title: 'Kirana - Online Grocery',
+        title: 'Flash - Online Grocery',
         theme: AppTheme.lightTheme,
         navigatorKey: NavigationService.navigatorKey,
         navigatorObservers: [AnalyticsService().getAnalyticsObserver()],

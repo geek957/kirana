@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// App theme configuration for Kirana Grocery Application
+/// App theme configuration for Flash Grocery Application
 class AppTheme {
   // Color Palette
   static const Color primaryColor = Color(

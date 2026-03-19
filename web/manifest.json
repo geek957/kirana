@@ -1,6 +1,6 @@
 {
-    "name": "kirana",
-    "short_name": "kirana",
+    "name": "Flash",
+    "short_name": "Flash",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kirana/utils/performance_utils.dart';
+import 'package:flash/utils/performance_utils.dart';
 
 void main() {
   group('Performance Utils Tests', () {

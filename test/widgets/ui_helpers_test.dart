@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kirana/widgets/ui_helpers.dart';
+import 'package:flash/widgets/ui_helpers.dart';
 
 void main() {
   group('LoadingStateWidget', () {
