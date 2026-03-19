@@ -44,8 +44,16 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android release signing (NEVER commit these!)
+**/android/key.properties
+**/android/*.jks
+**/android/*.keystore
+*.jks
+*.keystore
+
 # Firebase configuration files (contain sensitive keys)
 **/android/app/google-services.json
+**/android/key.properties
 **/ios/Runner/GoogleService-Info.plist
 **/macos/Runner/GoogleService-Info.plist
 

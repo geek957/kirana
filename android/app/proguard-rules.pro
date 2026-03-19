@@ -6,6 +6,9 @@
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 
+# Keep MainActivity
+-keep public class com.akhilralla.flash.MainActivity { *; }
+
 # Encryption libraries - Flutter Secure Storage
 -keep class com.it_nomads.fluttersecurestorage.** { *; }
 -keep class androidx.security.crypto.** { *; }

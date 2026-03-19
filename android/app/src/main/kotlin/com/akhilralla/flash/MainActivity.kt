@@ -1,4 +1,4 @@
-package com.example.kirana
+package com.akhilralla.flash
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -58,7 +58,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBMligHCWtvcCeYEFL3ROr4g44k5rNmi-E',
-    appId: '1:342620535954:android:d915f003ddc71d49cdba4b',
+    appId: '1:342620535954:android:f9fac1dd64997ec2cdba4b',
     messagingSenderId: '342620535954',
     projectId: 'kirana-grocery-app',
     storageBucket: 'kirana-grocery-app.firebasestorage.app',
@@ -70,6 +70,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '342620535954',
     projectId: 'kirana-grocery-app',
     storageBucket: 'kirana-grocery-app.firebasestorage.app',
-    iosBundleId: 'com.example.kirana',
+    iosBundleId: 'com.akhilralla.flash',
   );
 }
