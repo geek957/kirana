@@ -1,6 +1,6 @@
 {
   "name": "functions",
-  "description": "Cloud Functions for Kirana App",
+  "description": "Cloud Functions for Flash App",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",

@@ -37,6 +37,7 @@ dependencies:
 
   # Firebase SDK packages
   firebase_core: ^3.8.1
+  firebase_app_check: ^0.3.2+7
   cloud_firestore: ^5.5.2
   firebase_auth: ^5.3.4
   firebase_storage: ^12.3.8
