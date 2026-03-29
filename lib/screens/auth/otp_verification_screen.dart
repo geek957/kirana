@@ -29,6 +29,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
+  // Make verificationId mutable so resend can update it
+  late String _currentVerificationId;
+  
   bool _isLoading = false;
   String? _errorMessage;
   int _resendCountdown = 60;
@@ -38,6 +41,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize with the verificationId passed from login screen
+    _currentVerificationId = widget.verificationId;
     _startResendTimer();
   }
 
@@ -90,9 +95,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       print('📱 [OTP Screen] Current authProvider status: ${authProvider.status}');
       
-      print('📱 [OTP Screen] Calling authProvider.verifyCode...');
+      print('📱 [OTP Screen] Calling authProvider.verifyCode with ID: $_currentVerificationId');
       final customer = await authProvider.verifyCode(
-        verificationId: widget.verificationId,
+        verificationId: _currentVerificationId,
         code: otp,
       );
       print('📱 [OTP Screen] verifyCode returned. Customer: ${customer?.name ?? "null"}');
@@ -151,6 +156,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       widget.phoneNumber,
       onCodeSent: (verificationId) {
         setState(() {
+          // Update the verification ID with the new one from resend
+          _currentVerificationId = verificationId;
           _isLoading = false;
         });
         _startResendTimer();

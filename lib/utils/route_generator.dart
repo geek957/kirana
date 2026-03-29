@@ -13,6 +13,7 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/address/address_list_screen.dart';
 import '../screens/address/address_form_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
+import '../screens/help/help_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/inventory_management_screen.dart';
 import '../screens/admin/category_management_screen.dart';
@@ -58,6 +59,10 @@ class RouteGenerator {
           );
         }
         return _errorRoute('Invalid arguments for OTP verification');
+
+      // Help route (no authentication required)
+      case Routes.help:
+        return MaterialPageRoute(builder: (_) => const HelpScreen());
 
       // Customer routes (require authentication)
       case Routes.home:

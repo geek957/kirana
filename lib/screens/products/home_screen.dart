@@ -175,6 +175,14 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         actions: [
+          // Help icon
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              Navigator.pushNamed(context, Routes.help);
+            },
+            tooltip: 'Help & Support',
+          ),
           // Notification bell icon
           Consumer<NotificationProvider>(
             builder: (context, notificationProvider, child) {

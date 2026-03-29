@@ -17,6 +17,7 @@ class Routes {
   static const String addressList = '/address-list';
   static const String addressForm = '/address-form';
   static const String notifications = '/notifications';
+  static const String help = '/help';
 
   // Admin routes
   static const String adminDashboard = '/admin/dashboard';

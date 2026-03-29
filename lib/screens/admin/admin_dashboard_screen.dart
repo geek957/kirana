@@ -32,6 +32,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         actions: [
+          // Help icon
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              Navigator.pushNamed(context, Routes.help);
+            },
+            tooltip: 'Help & Support',
+          ),
+          // Logout icon
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
+import '../../utils/routes.dart';
 import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -58,6 +59,11 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
           _errorMessage = error;
         });
+      },
+      onVerificationCompleted: (credential) {
+        // Auto-verification completed (Android SMS Retriever)
+        // Navigate to OTP screen and let it handle the auto-sign-in
+        print('🔐 Auto-verification completed on login screen');
       },
     );
   }
@@ -185,9 +191,22 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Send OTP',
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          fontWeight: FontWeight.w600,
                         ),
+                      ),
+                ),
+                const SizedBox(height: 16),
+
+                // Help Button
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, Routes.help);
+                  },
+                  icon: const Icon(Icons.help_outline),
+                  label: const Text('Need Help?'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ],
             ),

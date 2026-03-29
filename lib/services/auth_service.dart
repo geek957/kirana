@@ -66,6 +66,7 @@ class AuthService {
     String phoneNumber, {
     required Function(String verificationId) onCodeSent,
     required Function(String error) onError,
+    Function(PhoneAuthCredential)? onVerificationCompleted,
   }) async {
     try {
       // Check rate limiting
@@ -81,8 +82,11 @@ class AuthService {
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-verification (Android only)
-          await _auth.signInWithCredential(credential);
+          // Auto-verification (Android only with SMS Retriever API)
+          // Don't sign in here - let the callback handle it to avoid consuming verificationId
+          if (onVerificationCompleted != null) {
+            onVerificationCompleted(credential);
+          }
         },
         verificationFailed: (FirebaseAuthException e) {
           onError(e.message ?? 'Verification failed');
